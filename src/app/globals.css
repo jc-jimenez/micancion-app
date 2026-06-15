@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --magenta-900: #6B0A42;
+  --magenta-700: #A81F6E;
+  --magenta-600: #D4358F;
+  --magenta-500: #E84CC4;
+  --magenta-300: #F088D4;
+  --magenta-100: #FBD7F0;
+  --magenta-050: #FFF1FA;
+
+  --coral-700: #CC4A2E;
+  --coral-600: #FF6B4A;
+  --coral-500: #FF8A6A;
+  --coral-300: #FFB09A;
+  --coral-100: #FFE4DC;
+  --coral-050: #FFF5F2;
+
+  --teal-700: #0B8A8F;
+  --teal-600: #19C3C9;
+  --teal-400: #4DD9DE;
+  --teal-100: #D0F5F6;
+  --teal-050: #F0FCFD;
+
+  --amarillo-700: #CC9500;
+  --amarillo-600: #FFCB2B;
+  --amarillo-400: #FFE066;
+  --amarillo-100: #FFF8D6;
+
+  --ink-900: #2D1B2E;
+  --ink-700: #3D2C2C;
+  --ink-500: #6B5057;
+  --ink-400: #9A7D84;
+  --ink-300: #C4B0B5;
+  --ink-200: #E8D9DC;
+  --ink-100: #F5EDEE;
+  --surface-050: #FFF9F5;
+  --white: #FFFFFF;
+
+  --success-600: #1A9E6A;
+  --success-100: #D0F5E8;
+  --error-600: #C62828;
+  --error-100: #F8E2E2;
+
+  --text-strong: var(--ink-900);
+  --text-body: var(--ink-700);
+  --text-muted: var(--ink-500);
+  --text-subtle: var(--ink-400);
+  --text-on-brand: var(--white);
+
+  --surface-page: var(--surface-050);
+  --surface-card: var(--white);
+  --surface-info: var(--magenta-050);
+  --surface-magic: var(--teal-050);
+  --surface-premium: var(--amarillo-100);
+
+  --brand-primary: var(--magenta-600);
+  --brand-primary-hover: var(--magenta-500);
+  --brand-accent: var(--coral-600);
+  --brand-ai: var(--teal-600);
+  --brand-joy: var(--amarillo-600);
+
+  --border-subtle: var(--ink-200);
+  --border-strong: var(--ink-300);
+
+  --gradient-magic: linear-gradient(135deg, #D4358F 0%, #FF6B4A 100%);
+  --gradient-night: linear-gradient(160deg, #2D1B2E 0%, #6B1F4A 38%, #D4358F 100%);
+  --gradient-gold: linear-gradient(135deg, #FFE066 0%, #FFCB2B 100%);
+  --gradient-joy: linear-gradient(135deg, #19C3C9 0%, #FFCB2B 100%);
+
+  --shadow-sm: 0 4px 6px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 16px rgba(0,0,0,0.12);
+  --shadow-magic: 0 8px 32px rgba(212,53,143,0.25);
+  --shadow-card: 0 2px 8px rgba(45,27,46,0.08);
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--surface-page);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

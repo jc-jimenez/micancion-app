@@ -1,34 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-
-const LETRA = `[Verso 1]
-En el momento que te vi llegar,
-supe que el mundo iba a cambiar.
-Tu sonrisa iluminó el lugar,
-y el corazón empezó a volar.
-
-[Coro]
-Esta canción es para ti,
-hecha con amor desde aquí.
-Cada nota, cada compás,
-te lleva a donde quieras ir.
-
-[Verso 2]
-Los años pasan pero tú y yo,
-seguimos siendo lo mejor.
-Como esa tarde que nos conoció
-el destino con su mejor flor.
-
-[Coro]
-Esta canción es para ti,
-hecha con amor desde aquí.
-Cada nota, cada compás,
-te lleva a donde quieras ir.
-
-[Final]
-Esta canción es para ti... 🎵`;
 
 const DURACION = 187; // segundos mock
 
@@ -44,7 +17,13 @@ export default function ResultadoPage() {
   const [progreso, setProgreso] = useState(0);
   const [letraVisible, setLetraVisible] = useState(false);
   const [compartido, setCompartido] = useState(false);
+  const [letra, setLetra] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("micancion_letra");
+    if (saved) setLetra(saved);
+  }, []);
 
   function togglePlay() {
     if (reproduciendo) {
@@ -292,7 +271,7 @@ export default function ResultadoPage() {
               whiteSpace: "pre-wrap", wordBreak: "break-word",
               animation: "fade-up 0.2s ease both",
             }}>
-              {LETRA}
+              {letra || "Cargando letra..."}
             </pre>
           )}
         </div>

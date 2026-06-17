@@ -128,6 +128,7 @@ Ahora genera la letra completa de la canción con toda la información anterior.
       const data = await res.json();
       if (data.text) {
         setLetra(data.text);
+        localStorage.setItem("micancion_letra", data.text);
       } else {
         setError(true);
       }

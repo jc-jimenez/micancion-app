@@ -30,6 +30,8 @@ export default function ResultadoPage() {
   const [compartido, setCompartido] = useState(false);
   const [letra, setLetra] = useState("");
   const [tieneAudio, setTieneAudio] = useState(false);
+  const [generandoAudio, setGenerandoAudio] = useState(false);
+  const [errorAudio, setErrorAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,19 +41,7 @@ export default function ResultadoPage() {
 
     const savedAudio = sessionStorage.getItem("micancion_audio");
     if (savedAudio) {
-      const audio = new Audio(savedAudio);
-      audio.addEventListener("loadedmetadata", () => {
-        setDuracion(Math.floor(audio.duration));
-      });
-      audio.addEventListener("ended", () => {
-        setReproduciendo(false);
-        setProgreso(0);
-      });
-      audio.addEventListener("timeupdate", () => {
-        setProgreso(Math.floor(audio.currentTime));
-      });
-      audioRef.current = audio;
-      setTieneAudio(true);
+      cargarAudio(savedAudio);
     }
 
     return () => {
@@ -92,6 +82,41 @@ export default function ResultadoPage() {
     setProgreso(newTime);
     if (tieneAudio && audioRef.current) {
       audioRef.current.currentTime = newTime;
+    }
+  }
+
+  function cargarAudio(base64: string) {
+    const audio = new Audio(base64);
+    audio.addEventListener("loadedmetadata", () => setDuracion(Math.floor(audio.duration)));
+    audio.addEventListener("ended", () => { setReproduciendo(false); setProgreso(0); });
+    audio.addEventListener("timeupdate", () => setProgreso(Math.floor(audio.currentTime)));
+    audioRef.current = audio;
+    setTieneAudio(true);
+  }
+
+  async function generarAudioAhora() {
+    if (!letra) return;
+    setGenerandoAudio(true);
+    setErrorAudio(false);
+    try {
+      const pedidoRaw = localStorage.getItem("micancion_pedido");
+      const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
+      const res = await fetch("/api/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letra, voz }),
+      });
+      if (!res.ok) throw new Error("Error");
+      const buffer = await res.arrayBuffer();
+      const base64 = `data:audio/mpeg;base64,${btoa(
+        new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), "")
+      )}`;
+      sessionStorage.setItem("micancion_audio", base64);
+      cargarAudio(base64);
+    } catch {
+      setErrorAudio(true);
+    } finally {
+      setGenerandoAudio(false);
     }
   }
 
@@ -156,6 +181,27 @@ export default function ResultadoPage() {
               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{tieneAudio ? "🎵 Audio real · " : "📄 "}Composición única · {formatTime(duracion)}</div>
             </div>
           </div>
+
+          {/* Generar audio si no existe */}
+          {!tieneAudio && (
+            <div style={{ marginBottom: 20, padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                  {generandoAudio ? "🎤 Generando audio con IA..." : errorAudio ? "⚠️ Error al generar audio" : "🎵 Genera el audio de tu canción"}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 }}>
+                  {generandoAudio ? "Puede tardar ~30 segundos" : "Convierte tu letra en voz real con IA"}
+                </div>
+              </div>
+              <button
+                onClick={generarAudioAhora}
+                disabled={generandoAudio || !letra}
+                style={{ height: 38, padding: "0 18px", borderRadius: 100, background: generandoAudio ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: generandoAudio ? "not-allowed" : "pointer", whiteSpace: "nowrap", boxShadow: generandoAudio ? "none" : "0 4px 16px rgba(212,53,143,0.4)", flexShrink: 0 }}
+              >
+                {generandoAudio ? "..." : errorAudio ? "Reintentar" : "Generar ✦"}
+              </button>
+            </div>
+          )}
 
           {/* Ecualizador */}
           {reproduciendo && (

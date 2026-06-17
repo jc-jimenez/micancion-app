@@ -25,34 +25,83 @@ export default function ResultadoPage() {
   const router = useRouter();
   const [reproduciendo, setReproduciendo] = useState(false);
   const [progreso, setProgreso] = useState(0);
+  const [duracion, setDuracion] = useState(DURACION);
   const [letraVisible, setLetraVisible] = useState(false);
   const [compartido, setCompartido] = useState(false);
   const [letra, setLetra] = useState("");
+  const [tieneAudio, setTieneAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("micancion_letra");
-    if (saved) setLetra(saved);
+    const savedLetra = localStorage.getItem("micancion_letra");
+    if (savedLetra) setLetra(savedLetra);
+
+    const savedAudio = sessionStorage.getItem("micancion_audio");
+    if (savedAudio) {
+      const audio = new Audio(savedAudio);
+      audio.addEventListener("loadedmetadata", () => {
+        setDuracion(Math.floor(audio.duration));
+      });
+      audio.addEventListener("ended", () => {
+        setReproduciendo(false);
+        setProgreso(0);
+      });
+      audio.addEventListener("timeupdate", () => {
+        setProgreso(Math.floor(audio.currentTime));
+      });
+      audioRef.current = audio;
+      setTieneAudio(true);
+    }
+
+    return () => {
+      audioRef.current?.pause();
+      clearInterval(intervalRef.current!);
+    };
   }, []);
 
   function togglePlay() {
-    if (reproduciendo) {
-      clearInterval(intervalRef.current!);
-      setReproduciendo(false);
+    if (tieneAudio && audioRef.current) {
+      if (reproduciendo) {
+        audioRef.current.pause();
+        setReproduciendo(false);
+      } else {
+        audioRef.current.play();
+        setReproduciendo(true);
+      }
     } else {
-      setReproduciendo(true);
-      intervalRef.current = setInterval(() => {
-        setProgreso((p) => {
-          if (p >= DURACION) { clearInterval(intervalRef.current!); setReproduciendo(false); return 0; }
-          return p + 1;
-        });
-      }, 1000);
+      // Simulación si no hay audio real
+      if (reproduciendo) {
+        clearInterval(intervalRef.current!);
+        setReproduciendo(false);
+      } else {
+        setReproduciendo(true);
+        intervalRef.current = setInterval(() => {
+          setProgreso((p) => {
+            if (p >= duracion) { clearInterval(intervalRef.current!); setReproduciendo(false); return 0; }
+            return p + 1;
+          });
+        }, 1000);
+      }
     }
   }
 
   function seek(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    setProgreso(Math.round(((e.clientX - rect.left) / rect.width) * DURACION));
+    const newTime = Math.round(((e.clientX - rect.left) / rect.width) * duracion);
+    setProgreso(newTime);
+    if (tieneAudio && audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  }
+
+  function descargar() {
+    const savedAudio = sessionStorage.getItem("micancion_audio");
+    if (!savedAudio) return;
+    const a = document.createElement("a");
+    a.href = savedAudio;
+    a.download = "mi-cancion.mp3";
+    a.click();
   }
 
   function compartir() {
@@ -61,7 +110,7 @@ export default function ResultadoPage() {
     setTimeout(() => setCompartido(false), 2000);
   }
 
-  const pct = (progreso / DURACION) * 100;
+  const pct = (progreso / duracion) * 100;
 
   return (
     <div style={{ minHeight: "100vh", background: "#0D0A14", fontFamily: "'Nunito', sans-serif" }}>
@@ -104,7 +153,7 @@ export default function ResultadoPage() {
             <div style={{ width: 60, height: 60, borderRadius: 14, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0, boxShadow: "0 4px 20px rgba(212,53,143,0.4)" }}>🎶</div>
             <div>
               <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 18, color: "#fff", marginBottom: 4 }}>Tu canción personalizada</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Composición única · {formatTime(DURACION)}</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{tieneAudio ? "🎵 Audio real · " : "📄 "}Composición única · {formatTime(duracion)}</div>
             </div>
           </div>
 
@@ -125,7 +174,7 @@ export default function ResultadoPage() {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 24 }}>
             <span>{formatTime(progreso)}</span>
-            <span>{formatTime(DURACION)}</span>
+            <span>{formatTime(duracion)}</span>
           </div>
 
           {/* Controles */}
@@ -140,8 +189,8 @@ export default function ResultadoPage() {
 
         {/* Acciones */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <button style={{ height: 50, borderRadius: 100, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(212,53,143,0.4)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            ⬇️ Descargar MP3
+          <button onClick={descargar} disabled={!tieneAudio} style={{ height: 50, borderRadius: 100, background: tieneAudio ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)", color: "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: tieneAudio ? "none" : "1px solid rgba(255,255,255,0.12)", cursor: tieneAudio ? "pointer" : "not-allowed", boxShadow: tieneAudio ? "0 4px 20px rgba(212,53,143,0.4)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            ⬇️ {tieneAudio ? "Descargar MP3" : "Generando..."}
           </button>
           <button onClick={compartir} style={{ height: 50, borderRadius: 100, background: compartido ? "rgba(25,195,201,0.15)" : "rgba(255,255,255,0.06)", color: compartido ? "#19C3C9" : "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: `1px solid ${compartido ? "#19C3C9" : "rgba(255,255,255,0.12)"}`, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             {compartido ? "✓ ¡Link copiado!" : "🔗 Compartir"}

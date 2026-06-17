@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const PASOS = [
@@ -11,28 +11,66 @@ const PASOS = [
   { emoji: "✨", texto: "¡Últimos toques mágicos!" },
 ];
 
-const DURACION_TOTAL = 6000;
-const INTERVALO_PASO = DURACION_TOTAL / PASOS.length;
-
 export default function GenerandoPage() {
   const router = useRouter();
   const [pasoActual, setPasoActual] = useState(0);
   const [progreso, setProgreso] = useState(0);
+  const [estado, setEstado] = useState<"generando" | "listo" | "error">("generando");
+  const audioGeneradoRef = useRef(false);
 
   useEffect(() => {
+    if (audioGeneradoRef.current) return;
+    audioGeneradoRef.current = true;
+    generarAudio();
+  }, []);
+
+  async function generarAudio() {
+    const letra = localStorage.getItem("micancion_letra") ?? "";
+    const pedidoRaw = localStorage.getItem("micancion_pedido");
+    const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
+
+    // Animación de progreso independiente
     const inicio = Date.now();
-    const interval = setInterval(() => {
+    const DURACION_MIN = 8000; // mínimo 8s de animación
+
+    const animInterval = setInterval(() => {
       const elapsed = Date.now() - inicio;
-      const pct = Math.min((elapsed / DURACION_TOTAL) * 100, 100);
+      const pct = Math.min((elapsed / DURACION_MIN) * 90, 90); // max 90% hasta que termine
       setProgreso(pct);
-      setPasoActual(Math.min(Math.floor(elapsed / INTERVALO_PASO), PASOS.length - 1));
-      if (elapsed >= DURACION_TOTAL) {
-        clearInterval(interval);
-        setTimeout(() => router.push("/resultado"), 400);
-      }
+      setPasoActual(Math.min(Math.floor(elapsed / (DURACION_MIN / PASOS.length)), PASOS.length - 1));
     }, 80);
-    return () => clearInterval(interval);
-  }, [router]);
+
+    try {
+      const res = await fetch("/api/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letra, voz }),
+      });
+
+      clearInterval(animInterval);
+
+      if (!res.ok) throw new Error("Error generando audio");
+
+      // Convertir a base64 y guardar en sessionStorage
+      const buffer = await res.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+      sessionStorage.setItem("micancion_audio", `data:audio/mpeg;base64,${base64}`);
+
+      setProgreso(100);
+      setPasoActual(PASOS.length - 1);
+      setEstado("listo");
+      setTimeout(() => router.push("/resultado"), 800);
+    } catch (err) {
+      console.error(err);
+      clearInterval(animInterval);
+      setEstado("error");
+      // Redirigir igual — el resultado mostrará la letra aunque no haya audio
+      setProgreso(100);
+      setTimeout(() => router.push("/resultado"), 1500);
+    }
+  }
 
   return (
     <div style={{
@@ -42,9 +80,11 @@ export default function GenerandoPage() {
       padding: "40px 24px", fontFamily: "'Nunito', sans-serif",
       position: "relative", overflow: "hidden",
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito:wght@400;600;700&display=swap');
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito:wght@400;600;700&display=swap');
         @keyframes eq-bounce { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
         @keyframes pulse-glow { 0%,100%{box-shadow:0 0 30px rgba(212,53,143,0.4)} 50%{box-shadow:0 0 60px rgba(212,53,143,0.7)} }
+        @keyframes pop { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
       `}</style>
 
       {/* Blobs */}
@@ -72,22 +112,16 @@ export default function GenerandoPage() {
           ))}
         </div>
 
-        {/* Título */}
         <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(26px,5vw,36px)", color: "#fff", textAlign: "center", marginBottom: 10, lineHeight: 1.2 }}>
-          Creando tu canción
+          {estado === "listo" ? "¡Tu canción está lista!" : "Creando tu canción"}
         </h1>
         <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 15, textAlign: "center", marginBottom: 48 }}>
-          La magia está en proceso ✨
+          {estado === "listo" ? "Redirigiendo..." : estado === "error" ? "Terminando..." : "La magia está en proceso ✨"}
         </p>
 
         {/* Barra de progreso */}
         <div style={{ width: "100%", height: 6, borderRadius: 100, background: "rgba(255,255,255,0.08)", marginBottom: 10, overflow: "hidden" }}>
-          <div style={{
-            height: "100%", width: `${progreso}%`,
-            background: "linear-gradient(135deg,#D4358F,#FF6B4A)",
-            borderRadius: 100, transition: "width 0.1s linear",
-            boxShadow: "0 0 12px rgba(212,53,143,0.6)",
-          }} />
+          <div style={{ height: "100%", width: `${progreso}%`, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", borderRadius: 100, transition: "width 0.3s ease", boxShadow: "0 0 12px rgba(212,53,143,0.6)" }} />
         </div>
         <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, fontWeight: 700, marginBottom: 44 }}>{Math.round(progreso)}%</div>
 
@@ -108,14 +142,12 @@ export default function GenerandoPage() {
                 }}>
                   {completado ? "✓" : p.emoji}
                 </div>
-                <span style={{ fontFamily: "'Nunito', sans-serif", fontWeight: activo ? 700 : 500, fontSize: 14, color: completado ? "rgba(255,255,255,0.9)" : activo ? "#fff" : "rgba(255,255,255,0.4)", transition: "all 0.3s ease" }}>
+                <span style={{ fontWeight: activo ? 700 : 500, fontSize: 14, color: completado ? "rgba(255,255,255,0.9)" : activo ? "#fff" : "rgba(255,255,255,0.4)", transition: "all 0.3s ease" }}>
                   {p.texto}
                 </span>
                 {activo && (
                   <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-                    {[0,1,2].map(n => (
-                      <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4358F", animation: `eq-bounce 0.7s ease ${n * 0.15}s infinite` }} />
-                    ))}
+                    {[0,1,2].map(n => <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4358F", animation: `eq-bounce 0.7s ease ${n * 0.15}s infinite` }} />)}
                   </div>
                 )}
               </div>

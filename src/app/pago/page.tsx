@@ -75,7 +75,7 @@ function PagoContenido() {
               const res = await fetch("/api/payment/process", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, email }),
+                body: JSON.stringify({ ...formData, transaction_amount: precioTotal, email }),
               });
               const data = await res.json();
               console.log("Payment response:", data);

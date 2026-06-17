@@ -75,7 +75,8 @@ function ChatContenido() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
       const transcript = Array.from(e.results)
-        .map((r) => r[0].transcript)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r[0].transcript)
         .join("");
       setInput(transcript);
     };

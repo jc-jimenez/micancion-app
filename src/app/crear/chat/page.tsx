@@ -45,7 +45,8 @@ function ChatContenido() {
   const [turno, setTurno] = useState(0);
   const [fase, setFase] = useState<Fase>("chat");
   const [escuchando, setEscuchando] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function toggleMic() {

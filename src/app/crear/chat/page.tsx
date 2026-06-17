@@ -50,8 +50,9 @@ function ChatContenido() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function toggleMic() {
-    const SR = (window as unknown as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
-      ?? (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
 
     if (!SR) {
       alert("Tu navegador no soporta el micrófono. Usa Chrome para esta función.");

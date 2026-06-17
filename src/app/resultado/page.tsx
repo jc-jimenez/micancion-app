@@ -39,10 +39,9 @@ export default function ResultadoPage() {
     const savedLetra = localStorage.getItem("micancion_letra");
     if (savedLetra) setLetra(savedLetra);
 
-    const savedAudio = sessionStorage.getItem("micancion_audio");
-    if (savedAudio) {
-      cargarAudio(savedAudio);
-    }
+    // Si había audio pre-generado en sessionStorage como blob URL
+    const savedAudio = sessionStorage.getItem("micancion_audio_url");
+    if (savedAudio) cargarAudio(savedAudio);
 
     return () => {
       audioRef.current?.pause();
@@ -107,12 +106,9 @@ export default function ResultadoPage() {
         body: JSON.stringify({ letra, voz }),
       });
       if (!res.ok) throw new Error("Error");
-      const buffer = await res.arrayBuffer();
-      const base64 = `data:audio/mpeg;base64,${btoa(
-        new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), "")
-      )}`;
-      sessionStorage.setItem("micancion_audio", base64);
-      cargarAudio(base64);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      cargarAudio(url);
     } catch {
       setErrorAudio(true);
     } finally {
@@ -120,13 +116,27 @@ export default function ResultadoPage() {
     }
   }
 
-  function descargar() {
-    const savedAudio = sessionStorage.getItem("micancion_audio");
-    if (!savedAudio) return;
-    const a = document.createElement("a");
-    a.href = savedAudio;
-    a.download = "mi-cancion.mp3";
-    a.click();
+  async function descargar() {
+    if (!letra) return;
+    const pedidoRaw = localStorage.getItem("micancion_pedido");
+    const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
+    try {
+      const res = await fetch("/api/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ letra, voz }),
+      });
+      if (!res.ok) throw new Error("Error");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mi-cancion.mp3";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Error descargando el audio. Intenta de nuevo.");
+    }
   }
 
   function compartir() {
@@ -235,8 +245,8 @@ export default function ResultadoPage() {
 
         {/* Acciones */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <button onClick={descargar} disabled={!tieneAudio} style={{ height: 50, borderRadius: 100, background: tieneAudio ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)", color: "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: tieneAudio ? "none" : "1px solid rgba(255,255,255,0.12)", cursor: tieneAudio ? "pointer" : "not-allowed", boxShadow: tieneAudio ? "0 4px 20px rgba(212,53,143,0.4)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            ⬇️ {tieneAudio ? "Descargar MP3" : "Generando..."}
+          <button onClick={descargar} disabled={!letra} style={{ height: 50, borderRadius: 100, background: letra ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)", color: "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: "none", cursor: letra ? "pointer" : "not-allowed", boxShadow: letra ? "0 4px 20px rgba(212,53,143,0.4)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            ⬇️ Descargar MP3
           </button>
           <button onClick={compartir} style={{ height: 50, borderRadius: 100, background: compartido ? "rgba(25,195,201,0.15)" : "rgba(255,255,255,0.06)", color: compartido ? "#19C3C9" : "#fff", fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: 14, border: `1px solid ${compartido ? "#19C3C9" : "rgba(255,255,255,0.12)"}`, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             {compartido ? "✓ ¡Link copiado!" : "🔗 Compartir"}

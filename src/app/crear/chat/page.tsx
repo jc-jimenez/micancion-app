@@ -44,7 +44,44 @@ function ChatContenido() {
   const [enviando, setEnviando] = useState(false);
   const [turno, setTurno] = useState(0);
   const [fase, setFase] = useState<Fase>("chat");
+  const [escuchando, setEscuchando] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  function toggleMic() {
+    const SR = (window as unknown as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
+      ?? (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+
+    if (!SR) {
+      alert("Tu navegador no soporta el micrófono. Usa Chrome para esta función.");
+      return;
+    }
+
+    if (escuchando) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.lang = "es-MX";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setEscuchando(true);
+    recognition.onend = () => setEscuchando(false);
+
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setInput(transcript);
+    };
+
+    recognition.onerror = () => setEscuchando(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }
 
   const preguntasMax = esGuiado ? 7 : 2;
   const progreso = fase === "listo" ? 100 : Math.min(Math.round((turno / preguntasMax) * 100), 95);
@@ -212,17 +249,35 @@ function ChatContenido() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
-                  placeholder={ultimoMensajeIA?.placeholder ?? "Escribe tu respuesta..."}
+                  placeholder={escuchando ? "Estoy escuchando... habla ahora 🎙️" : (ultimoMensajeIA?.placeholder ?? "Escribe o usa el micrófono...")}
                   rows={3}
-                  style={{ flex: 1, resize: "none", padding: "12px 16px", borderRadius: "var(--radius-lg)", border: "1.5px solid var(--border-subtle)", background: "var(--surface-card)", fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-body)", outline: "none", lineHeight: 1.5, transition: "border-color 0.2s" }}
+                  style={{ flex: 1, resize: "none", padding: "12px 16px", borderRadius: "var(--radius-lg)", border: `1.5px solid ${escuchando ? "var(--magenta-300)" : "var(--border-subtle)"}`, background: escuchando ? "var(--magenta-050)" : "var(--surface-card)", fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-body)", outline: "none", lineHeight: 1.5, transition: "all 0.2s" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = "var(--magenta-300)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-subtle)")}
+                  onBlur={(e) => { if (!escuchando) e.currentTarget.style.borderColor = "var(--border-subtle)"; }}
                 />
-                <button
-                  onClick={() => enviar(input)}
-                  disabled={!input.trim() || enviando}
-                  style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: input.trim() ? "var(--gradient-magic)" : "var(--ink-200)", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: input.trim() ? "var(--shadow-magic)" : "none", transition: "all 0.2s ease" }}
-                >➤</button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {/* Botón micrófono */}
+                  <button
+                    onClick={toggleMic}
+                    title={escuchando ? "Detener" : "Hablar"}
+                    style={{
+                      width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
+                      background: escuchando ? "var(--gradient-magic)" : "var(--surface-card)",
+                      border: `1.5px solid ${escuchando ? "transparent" : "var(--border-subtle)"}`,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+                      boxShadow: escuchando ? "var(--shadow-magic)" : "none",
+                      transition: "all 0.2s ease",
+                      animation: escuchando ? "pop 0.6s ease infinite alternate" : "none",
+                    }}
+                  >🎙️</button>
+                  {/* Botón enviar */}
+                  <button
+                    onClick={() => { recognitionRef.current?.stop(); enviar(input); }}
+                    disabled={!input.trim() || enviando}
+                    style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: input.trim() ? "var(--gradient-magic)" : "var(--ink-200)", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: input.trim() ? "var(--shadow-magic)" : "none", transition: "all 0.2s ease" }}
+                  >➤</button>
+                </div>
               </div>
 
               {/* Botón saltar al final — visible después del primer turno */}

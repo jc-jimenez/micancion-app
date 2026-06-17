@@ -182,27 +182,28 @@ function ChatContenido() {
   const ultimoMensajeIA = [...mensajes].reverse().find((m) => m.rol === "ia");
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-page)", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "#0D0A14", display: "flex", flexDirection: "column", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito:wght@400;600;700&display=swap'); @keyframes eq-bounce{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}} @keyframes fade-up{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}} @keyframes pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
       <Navbar />
 
       {/* Barra de progreso */}
-      <div style={{ height: 3, background: "var(--ink-200)", position: "sticky", top: 56, zIndex: 40 }}>
-        <div style={{ height: "100%", width: `${progreso}%`, background: "var(--gradient-magic)", transition: "width 0.5s ease" }} />
+      <div style={{ height: 3, background: "rgba(255,255,255,0.08)", position: "sticky", top: 56, zIndex: 40 }}>
+        <div style={{ height: "100%", width: `${progreso}%`, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", transition: "width 0.5s ease" }} />
       </div>
 
       {/* Indicador de paso */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 20px", borderBottom: "1px solid var(--border-subtle)",
-        background: "var(--surface-card)", position: "sticky", top: 59, zIndex: 39,
+        padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(13,10,20,0.9)", position: "sticky", top: 59, zIndex: 39,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 18 }}>{metodo === "escribir" ? "✍️" : "🎙️"}</span>
-          <span style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 13, color: "var(--text-muted)" }}>
+          <span style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
             {fase === "confirmacion" ? "¿Todo bien?" : fase === "listo" ? "¡Listo para crear!" : metodo === "escribir" ? "Modo libre" : `Pregunta ${Math.min(turno + 1, preguntasMax)} de ${preguntasMax}`}
           </span>
         </div>
-        <button onClick={() => router.push("/crear")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-subtle)", padding: "4px 8px" }}>
+        <button onClick={() => router.push("/crear")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "rgba(255,255,255,0.35)", padding: "4px 8px" }}>
           ← Cambiar método
         </button>
       </div>
@@ -212,15 +213,15 @@ function ChatContenido() {
         {mensajes.map((m, i) => (
           <div key={i} style={{ display: "flex", flexDirection: m.rol === "ia" ? "row" : "row-reverse", gap: 12, alignItems: "flex-start", animation: "fade-up 0.3s ease both" }}>
             {m.rol === "ia" && (
-              <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: "var(--gradient-magic)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "var(--shadow-magic)" }}>🎵</div>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, boxShadow: "0 4px 16px rgba(212,53,143,0.4)" }}>🎵</div>
             )}
             <div style={{
               maxWidth: "78%", padding: "12px 16px",
               borderRadius: m.rol === "ia" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
-              background: m.rol === "ia" ? "var(--surface-card)" : "var(--gradient-magic)",
-              color: m.rol === "ia" ? "var(--text-body)" : "#fff",
-              fontFamily: "var(--font-body)", fontSize: 15, lineHeight: 1.6,
-              boxShadow: m.rol === "ia" ? "var(--shadow-card)" : "var(--shadow-magic)",
+              background: m.rol === "ia" ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg,#D4358F,#FF6B4A)",
+              color: "#fff", fontSize: 15, lineHeight: 1.6,
+              border: m.rol === "ia" ? "1px solid rgba(255,255,255,0.08)" : "none",
+              boxShadow: m.rol === "usuario" ? "0 4px 16px rgba(212,53,143,0.3)" : "none",
               whiteSpace: "pre-wrap",
             }}>
               {m.texto}
@@ -230,10 +231,10 @@ function ChatContenido() {
 
         {enviando && (
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start", animation: "fade-up 0.3s ease both" }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: "var(--gradient-magic)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎵</div>
-            <div style={{ padding: "14px 18px", borderRadius: "4px 16px 16px 16px", background: "var(--surface-card)", boxShadow: "var(--shadow-card)", display: "flex", gap: 5, alignItems: "center" }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎵</div>
+            <div style={{ padding: "14px 18px", borderRadius: "4px 16px 16px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 5, alignItems: "center" }}>
               {[0, 1, 2].map((n) => (
-                <div key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--magenta-300)", animation: `eq-bounce 0.8s ease ${n * 0.15}s infinite` }} />
+                <div key={n} style={{ width: 7, height: 7, borderRadius: "50%", background: "#D4358F", animation: `eq-bounce 0.8s ease ${n * 0.15}s infinite` }} />
               ))}
             </div>
           </div>
@@ -242,7 +243,7 @@ function ChatContenido() {
       </div>
 
       {/* Zona de acción */}
-      <div style={{ position: "sticky", bottom: 0, background: "rgba(255,249,245,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid var(--border-subtle)", padding: "16px 20px 20px" }}>
+      <div style={{ position: "sticky", bottom: 0, background: "rgba(13,10,20,0.95)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "16px 20px 20px" }}>
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
           {/* FASE: chat normal */}
@@ -255,9 +256,9 @@ function ChatContenido() {
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(input); } }}
                   placeholder={escuchando ? "Estoy escuchando... habla ahora 🎙️" : (ultimoMensajeIA?.placeholder ?? "Escribe o usa el micrófono...")}
                   rows={3}
-                  style={{ flex: 1, resize: "none", padding: "12px 16px", borderRadius: "var(--radius-lg)", border: `1.5px solid ${escuchando ? "var(--magenta-300)" : "var(--border-subtle)"}`, background: escuchando ? "var(--magenta-050)" : "var(--surface-card)", fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-body)", outline: "none", lineHeight: 1.5, transition: "all 0.2s" }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--magenta-300)")}
-                  onBlur={(e) => { if (!escuchando) e.currentTarget.style.borderColor = "var(--border-subtle)"; }}
+                  style={{ flex: 1, resize: "none", padding: "12px 16px", borderRadius: 14, border: `1.5px solid ${escuchando ? "#D4358F" : "rgba(255,255,255,0.12)"}`, background: escuchando ? "rgba(212,53,143,0.08)" : "rgba(255,255,255,0.06)", fontSize: 14, color: "#fff", outline: "none", lineHeight: 1.5, transition: "all 0.2s", fontFamily: "'Nunito', sans-serif" }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "#D4358F")}
+                  onBlur={(e) => { if (!escuchando) e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
                 />
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {/* Botón micrófono */}
@@ -266,11 +267,11 @@ function ChatContenido() {
                     title={escuchando ? "Detener" : "Hablar"}
                     style={{
                       width: 48, height: 48, borderRadius: "50%", flexShrink: 0,
-                      background: escuchando ? "var(--gradient-magic)" : "var(--surface-card)",
-                      border: `1.5px solid ${escuchando ? "transparent" : "var(--border-subtle)"}`,
+                      background: escuchando ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)",
+                      border: `1.5px solid ${escuchando ? "transparent" : "rgba(255,255,255,0.12)"}`,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-                      boxShadow: escuchando ? "var(--shadow-magic)" : "none",
+                      boxShadow: escuchando ? "0 4px 16px rgba(212,53,143,0.5)" : "none",
                       transition: "all 0.2s ease",
                       animation: escuchando ? "pop 0.6s ease infinite alternate" : "none",
                     }}
@@ -279,7 +280,7 @@ function ChatContenido() {
                   <button
                     onClick={() => { recognitionRef.current?.stop(); enviar(input); }}
                     disabled={!input.trim() || enviando}
-                    style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: input.trim() ? "var(--gradient-magic)" : "var(--ink-200)", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: input.trim() ? "var(--shadow-magic)" : "none", transition: "all 0.2s ease" }}
+                    style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: input.trim() ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)", border: "none", cursor: input.trim() ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: input.trim() ? "0 4px 16px rgba(212,53,143,0.5)" : "none", transition: "all 0.2s ease" }}
                   >➤</button>
                 </div>
               </div>
@@ -296,19 +297,18 @@ function ChatContenido() {
                     }]);
                   }}
                   style={{
-                    width: "100%", height: 38, borderRadius: "var(--radius-full)",
-                    background: "none", border: "1.5px solid var(--border-subtle)",
-                    color: "var(--text-muted)", fontFamily: "var(--font-ui)",
-                    fontWeight: 600, fontSize: 13, cursor: "pointer",
-                    transition: "all 0.15s",
+                    width: "100%", height: 38, borderRadius: 100,
+                    background: "none", border: "1.5px solid rgba(255,255,255,0.12)",
+                    color: "rgba(255,255,255,0.4)", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                    transition: "all 0.15s", fontFamily: "'Nunito', sans-serif",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--magenta-300)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--magenta-700)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#D4358F";
+                    (e.currentTarget as HTMLButtonElement).style.color = "#D4358F";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.12)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.4)";
                   }}
                 >
                   Ya di suficiente información →
@@ -325,20 +325,20 @@ function ChatContenido() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="¿Algo que corregir o agregar? (opcional)"
                 rows={2}
-                style={{ width: "100%", resize: "none", padding: "12px 16px", borderRadius: "var(--radius-lg)", border: "1.5px solid var(--border-subtle)", background: "var(--surface-card)", fontFamily: "var(--font-body)", fontSize: 14, color: "var(--text-body)", outline: "none", lineHeight: 1.5, boxSizing: "border-box" }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--magenta-300)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-subtle)")}
+                style={{ width: "100%", resize: "none", padding: "12px 16px", borderRadius: 14, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", fontFamily: "'Nunito', sans-serif", fontSize: 14, color: "#fff", outline: "none", lineHeight: 1.5, boxSizing: "border-box" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#D4358F")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)")}
               />
               <button
                 onClick={irAPropuesta}
-                style={{ width: "100%", height: 52, borderRadius: "var(--radius-full)", background: "var(--gradient-magic)", color: "#fff", fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "var(--shadow-magic)" }}
+                style={{ width: "100%", height: 52, borderRadius: 100, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "0 8px 32px rgba(212,53,143,0.4)" }}
               >
                 ¡Crear mi canción! ✨
               </button>
               <button
                 onClick={() => enviar(input)}
                 disabled={!input.trim() || enviando}
-                style={{ width: "100%", height: 44, borderRadius: "var(--radius-full)", background: "none", color: input.trim() ? "var(--magenta-700)" : "var(--text-subtle)", fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 14, border: `1.5px solid ${input.trim() ? "var(--magenta-300)" : "var(--border-subtle)"}`, cursor: input.trim() ? "pointer" : "default", transition: "all 0.15s" }}
+                style={{ width: "100%", height: 44, borderRadius: 100, background: "none", color: input.trim() ? "#D4358F" : "rgba(255,255,255,0.25)", fontFamily: "'Nunito', sans-serif", fontWeight: 600, fontSize: 14, border: `1.5px solid ${input.trim() ? "#D4358F" : "rgba(255,255,255,0.12)"}`, cursor: input.trim() ? "pointer" : "default", transition: "all 0.15s" }}
               >
                 Enviar corrección →
               </button>
@@ -349,7 +349,7 @@ function ChatContenido() {
           {fase === "listo" && (
             <button
               onClick={irAPropuesta}
-              style={{ width: "100%", height: 52, borderRadius: "var(--radius-full)", background: "var(--gradient-magic)", color: "#fff", fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "var(--shadow-magic)", animation: "pop 0.3s ease both" }}
+              style={{ width: "100%", height: 52, borderRadius: 100, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 16, border: "none", cursor: "pointer", boxShadow: "0 8px 32px rgba(212,53,143,0.4)", animation: "pop 0.3s ease both" }}
             >
               ¡Crear mi canción! ✨
             </button>

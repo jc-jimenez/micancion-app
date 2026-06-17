@@ -68,6 +68,24 @@ function PagoContenido() {
         callbacks: {
           onReady: () => { setCargandoMP(false); setMpListo(true); },
           onError: () => setCargandoMP(false),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onSubmit: async ({ formData }: any) => {
+            try {
+              const res = await fetch("/api/payment/process", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...formData, email }),
+              });
+              const data = await res.json();
+              if (data.status === "approved" || data.status === "in_process") {
+                window.location.href = "/generando";
+              } else {
+                window.location.href = "/pago?error=1";
+              }
+            } catch {
+              window.location.href = "/pago?error=1";
+            }
+          },
         },
       });
     } catch (err) {

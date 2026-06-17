@@ -1,45 +1,22 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 
-function formatCard(val: string) {
-  return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-}
-function formatExpiry(val: string) {
-  const d = val.replace(/\D/g, "").slice(0, 4);
-  return d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
-}
-function cardBrand(num: string) {
-  const n = num.replace(/\s/g, "");
-  if (/^4/.test(n)) return "Visa";
-  if (/^5[1-5]/.test(n)) return "Mastercard";
-  if (/^3[47]/.test(n)) return "Amex";
-  return "";
-}
+function PagoContenido() {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
 
-const inputStyle: React.CSSProperties = {
-  height: 50, padding: "0 16px", width: "100%",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.06)",
-  fontFamily: "'Nunito', sans-serif", fontSize: 15,
-  color: "#fff", outline: "none",
-  transition: "border-color 0.2s",
-};
-
-export default function PagoPage() {
-  const router = useRouter();
-  const [nombre, setNombre] = useState("");
-  const [tarjeta, setTarjeta] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
   const [email, setEmail] = useState("");
-  const [procesando, setProcesando] = useState(false);
-  const [errores, setErrores] = useState<Record<string, string>>({});
-  const [focusField, setFocusField] = useState<string | null>(null);
+  const [emailOk, setEmailOk] = useState(false);
+  const [cargandoMP, setCargandoMP] = useState(false);
+  const [mpListo, setMpListo] = useState(false);
   const [precioTotal, setPrecioTotal] = useState(39);
   const [configDesc, setConfigDesc] = useState("Canción IA personalizada");
+  const brickRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const brickControllerRef = useRef<any>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("micancion_pedido");
@@ -50,42 +27,73 @@ export default function PagoPage() {
     }
   }, []);
 
-  function validar() {
-    const e: Record<string, string> = {};
-    if (!nombre.trim()) e.nombre = "Ingresa el nombre del titular";
-    if (tarjeta.replace(/\s/g, "").length < 16) e.tarjeta = "Número inválido";
-    if (expiry.length < 5) e.expiry = "Fecha inválida";
-    if (cvv.length < 3) e.cvv = "CVV inválido";
-    if (!email.includes("@")) e.email = "Email inválido";
-    return e;
-  }
+  async function iniciarPago() {
+    if (!email.includes("@")) return;
+    setCargandoMP(true);
 
-  function pagar() {
-    const e = validar();
-    if (Object.keys(e).length) { setErrores(e); return; }
-    setErrores({});
-    setProcesando(true);
-    setTimeout(() => router.push("/generando"), 2000);
-  }
+    try {
+      // 1. Crear preferencia en el backend
+      const res = await fetch("/api/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ total: precioTotal, desc: configDesc, email }),
+      });
+      const { id: preferenceId, sandbox_init_point } = await res.json();
 
-  const fieldStyle = (field: string): React.CSSProperties => ({
-    ...inputStyle,
-    borderColor: errores[field] ? "#FF6B4A" : focusField === field ? "#D4358F" : "rgba(255,255,255,0.12)",
-  });
+      if (!preferenceId) throw new Error("Sin preference ID");
+
+      // 2. Cargar el SDK de MP dinámicamente
+      const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
+
+      if (!publicKey) {
+        // Sin clave pública — redirigir directo al sandbox_init_point
+        if (sandbox_init_point) window.location.href = sandbox_init_point;
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mp = new (window as any).MercadoPago(publicKey, { locale: "es-MX" });
+      const bricks = mp.bricks();
+
+      if (brickControllerRef.current) {
+        brickControllerRef.current.unmount();
+      }
+
+      brickControllerRef.current = await bricks.create("cardPayment", "mp-brick-container", {
+        initialization: { amount: precioTotal, preferenceId },
+        customization: {
+          visual: { style: { theme: "dark" } },
+          paymentMethods: { types: { included: ["credit_card", "debit_card"] } },
+        },
+        callbacks: {
+          onReady: () => { setCargandoMP(false); setMpListo(true); },
+          onError: () => setCargandoMP(false),
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      setCargandoMP(false);
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#0D0A14", fontFamily: "'Nunito', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito:wght@400;600;700&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fade-up { from{transform:translateY(12px);opacity:0} to{transform:translateY(0);opacity:1} }
         ::placeholder { color: rgba(255,255,255,0.3); }
+        #mp-brick-container iframe { border-radius: 16px !important; }
       `}</style>
 
-      {/* Blob */}
-      <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 500, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(212,53,143,0.1) 0%,transparent 70%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+      {/* Script SDK de MP */}
+      <script src="https://sdk.mercadopago.com/js/v2" async />
+
+      {/* Blobs */}
+      <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(212,53,143,0.1) 0%,transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
 
       {/* Navbar */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(13,10,20,0.85)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(13,10,20,0.9)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎵</div>
           <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 18, color: "#fff" }}>MiCanción</span>
@@ -95,77 +103,80 @@ export default function PagoPage() {
         </div>
       </nav>
 
-      <main style={{ position: "relative", zIndex: 1, maxWidth: 480, width: "100%", margin: "0 auto", padding: "40px 24px 80px" }}>
+      <main style={{ position: "relative", zIndex: 1, maxWidth: 500, width: "100%", margin: "0 auto", padding: "40px 24px 80px", animation: "fade-up 0.4s ease both" }}>
 
-        <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(24px,4vw,32px)", color: "#fff", marginBottom: 6 }}>Pago seguro 🔒</h1>
-        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, marginBottom: 32 }}>Entorno sandbox — usa la tarjeta de prueba abajo.</p>
+        <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(24px,4vw,32px)", color: "#fff", marginBottom: 6 }}>
+          Pago seguro 🔒
+        </h1>
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, marginBottom: 32 }}>
+          Procesado por Mercado Pago · SSL 256-bit
+        </p>
 
-        {/* Resumen */}
-        <div style={{ background: "rgba(212,53,143,0.08)", border: "1px solid rgba(212,53,143,0.25)", borderRadius: 16, padding: "18px 20px", marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        {/* Error banner */}
+        {errorParam && (
+          <div style={{ background: "rgba(255,107,74,0.1)", border: "1px solid rgba(255,107,74,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 24, color: "#FF6B4A", fontSize: 14, fontWeight: 600 }}>
+            ⚠️ El pago no se completó. Intenta de nuevo.
+          </div>
+        )}
+
+        {/* Resumen del pedido */}
+        <div style={{ background: "rgba(212,53,143,0.08)", border: "1px solid rgba(212,53,143,0.2)", borderRadius: 16, padding: "18px 20px", marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>🎵 {configDesc}</div>
-            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4 }}>Entrega inmediata · Descarga MP3</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 4 }}>Entrega inmediata · Descarga MP3</div>
           </div>
-          <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 28, color: "#D4358F" }}>${precioTotal}</div>
-        </div>
-
-        {/* Tarjeta de prueba */}
-        <div style={{ background: "rgba(255,183,0,0.08)", border: "1px solid rgba(255,183,0,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 28 }}>
-          <div style={{ color: "#FFB700", fontWeight: 700, fontSize: 12, marginBottom: 6 }}>🧪 Tarjeta de prueba (sandbox)</div>
-          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, display: "flex", flexDirection: "column", gap: 3 }}>
-            <span><b style={{ color: "#fff" }}>Número:</b> 4235 6477 2802 5682</span>
-            <span><b style={{ color: "#fff" }}>Vencimiento:</b> 11/25 &nbsp;<b style={{ color: "#fff" }}>CVV:</b> 123 &nbsp;<b style={{ color: "#fff" }}>Nombre:</b> APRO</span>
-          </div>
-        </div>
-
-        {/* Formulario */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {[
-            { label: "Correo electrónico", field: "email", type: "email", placeholder: "tu@email.com", value: email, set: setEmail },
-            { label: "Nombre en la tarjeta", field: "nombre", type: "text", placeholder: "NOMBRE APELLIDO", value: nombre, set: (v: string) => setNombre(v.toUpperCase()) },
-          ].map(({ label, field, type, placeholder, value, set }) => (
-            <div key={field}>
-              <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
-              <input type={type} value={value} onChange={(e) => set(e.target.value)} onFocus={() => setFocusField(field)} onBlur={() => setFocusField(null)} placeholder={placeholder} style={fieldStyle(field)} />
-              {errores[field] && <span style={{ color: "#FF6B4A", fontSize: 12, marginTop: 4, display: "block" }}>{errores[field]}</span>}
-            </div>
-          ))}
-
           <div>
+            <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 30, color: "#D4358F" }}>${precioTotal}</span>
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginLeft: 4 }}>MXN</span>
+          </div>
+        </div>
+
+        {/* Paso 1: Email */}
+        {!mpListo && (
+          <div style={{ marginBottom: 24 }}>
             <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Número de tarjeta {cardBrand(tarjeta) && <span style={{ color: "#D4358F" }}>· {cardBrand(tarjeta)}</span>}
+              Correo electrónico
             </label>
-            <input type="text" inputMode="numeric" value={tarjeta} onChange={(e) => setTarjeta(formatCard(e.target.value))} onFocus={() => setFocusField("tarjeta")} onBlur={() => setFocusField(null)} placeholder="4235 6477 2802 5682" style={{ ...fieldStyle("tarjeta"), letterSpacing: "0.12em" }} />
-            {errores.tarjeta && <span style={{ color: "#FF6B4A", fontSize: 12, marginTop: 4, display: "block" }}>{errores.tarjeta}</span>}
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Vencimiento</label>
-              <input type="text" inputMode="numeric" value={expiry} onChange={(e) => setExpiry(formatExpiry(e.target.value))} onFocus={() => setFocusField("expiry")} onBlur={() => setFocusField(null)} placeholder="MM/AA" style={fieldStyle("expiry")} />
-              {errores.expiry && <span style={{ color: "#FF6B4A", fontSize: 12 }}>{errores.expiry}</span>}
+            <div style={{ display: "flex", gap: 10 }}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailOk(e.target.value.includes("@")); }}
+                placeholder="tu@email.com"
+                style={{ flex: 1, height: 50, padding: "0 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 15, outline: "none", fontFamily: "'Nunito', sans-serif" }}
+                onKeyDown={(e) => { if (e.key === "Enter" && emailOk) iniciarPago(); }}
+              />
+              <button
+                onClick={iniciarPago}
+                disabled={!emailOk || cargandoMP}
+                style={{ height: 50, padding: "0 20px", borderRadius: 12, background: emailOk && !cargandoMP ? "linear-gradient(135deg,#D4358F,#FF6B4A)" : "rgba(255,255,255,0.06)", color: "#fff", fontWeight: 700, fontSize: 14, border: "none", cursor: emailOk && !cargandoMP ? "pointer" : "not-allowed", whiteSpace: "nowrap", boxShadow: emailOk ? "0 4px 16px rgba(212,53,143,0.4)" : "none", transition: "all 0.2s" }}
+              >
+                {cargandoMP ? (
+                  <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
+                ) : "Continuar →"}
+              </button>
             </div>
-            <div>
-              <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>CVV</label>
-              <input type="text" inputMode="numeric" value={cvv} onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} onFocus={() => setFocusField("cvv")} onBlur={() => setFocusField(null)} placeholder="123" style={fieldStyle("cvv")} />
-              {errores.cvv && <span style={{ color: "#FF6B4A", fontSize: 12 }}>{errores.cvv}</span>}
-            </div>
           </div>
+        )}
 
-          <button onClick={pagar} disabled={procesando} style={{ marginTop: 8, height: 54, borderRadius: 100, background: procesando ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: procesando ? "rgba(255,255,255,0.4)" : "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 17, border: "none", cursor: procesando ? "not-allowed" : "pointer", boxShadow: procesando ? "none" : "0 8px 32px rgba(212,53,143,0.4)", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            {procesando ? (
-              <><span style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", display: "inline-block", animation: "spin 0.7s linear infinite" }} />Procesando...</>
-            ) : `Pagar $${precioTotal} MXN →`}
-          </button>
+        {/* Contenedor de Brick de MP */}
+        <div ref={brickRef} id="mp-brick-container" style={{ minHeight: mpListo ? "auto" : 0 }} />
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
-            {["🔒 SSL seguro", "🏦 Mercado Pago", "✅ Garantía 100%"].map(s => (
-              <span key={s} style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{s}</span>
-            ))}
-          </div>
+        {/* Sellos */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
+          {["🔒 SSL seguro", "🏦 Mercado Pago", "✅ Garantía 100%"].map(s => (
+            <span key={s} style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>{s}</span>
+          ))}
         </div>
       </main>
     </div>
+  );
+}
+
+export default function PagoPage() {
+  return (
+    <Suspense>
+      <PagoContenido />
+    </Suspense>
   );
 }

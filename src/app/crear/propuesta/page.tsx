@@ -410,7 +410,13 @@ Ahora genera la letra completa de la canción con toda la información anterior.
             </div>
           </div>
           <button
-            onClick={() => router.push("/pago")}
+            onClick={() => {
+              localStorage.setItem("micancion_pedido", JSON.stringify({
+                total: precioTotal,
+                desc: `${config.estilo} · ${config.tono} · Voz ${config.voz}`,
+              }));
+              router.push("/pago");
+            }}
             disabled={generando}
             style={{
               height: 50, padding: "0 32px", borderRadius: "var(--radius-full)",

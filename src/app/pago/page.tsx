@@ -7,6 +7,7 @@ import { Suspense } from "react";
 function PagoContenido() {
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
+  const errorDetail = searchParams.get("detail");
 
   const [email, setEmail] = useState("");
   const [emailOk, setEmailOk] = useState(false);
@@ -77,12 +78,14 @@ function PagoContenido() {
                 body: JSON.stringify({ ...formData, email }),
               });
               const data = await res.json();
-              if (data.status === "approved" || data.status === "in_process") {
+              console.log("Payment response:", data);
+              if (data.status === "approved" || data.status === "in_process" || data.status === "pending") {
                 window.location.href = "/generando";
               } else {
-                window.location.href = "/pago?error=1";
+                window.location.href = `/pago?error=1&detail=${data.status_detail ?? data.status ?? "unknown"}`;
               }
-            } catch {
+            } catch (e) {
+              console.error("onSubmit error:", e);
               window.location.href = "/pago?error=1";
             }
           },
@@ -133,7 +136,7 @@ function PagoContenido() {
         {/* Error banner */}
         {errorParam && (
           <div style={{ background: "rgba(255,107,74,0.1)", border: "1px solid rgba(255,107,74,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 24, color: "#FF6B4A", fontSize: 14, fontWeight: 600 }}>
-            ⚠️ El pago no se completó. Intenta de nuevo.
+            ⚠️ El pago no se completó. Intenta de nuevo. {errorDetail && <span style={{opacity:0.7}}>({errorDetail})</span>}
           </div>
         )}
 

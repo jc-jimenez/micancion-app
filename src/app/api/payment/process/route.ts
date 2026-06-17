@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ status: result.status, id: result.id });
+    console.log("MP payment result:", result.status, result.status_detail, result.id);
+    return NextResponse.json({ status: result.status, status_detail: result.status_detail, id: result.id });
   } catch (error) {
     console.error("MP process error:", error);
     return NextResponse.json({ error: "Error procesando pago" }, { status: 500 });

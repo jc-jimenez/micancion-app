@@ -8,6 +8,7 @@ const client = new MercadoPagoConfig({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("MP process body keys:", Object.keys(body));
     const { email, ...formData } = body;
 
     const payment = new Payment(client);
@@ -20,8 +21,9 @@ export async function POST(req: NextRequest) {
 
     console.log("MP payment result:", result.status, result.status_detail, result.id);
     return NextResponse.json({ status: result.status, status_detail: result.status_detail, id: result.id });
-  } catch (error) {
-    console.error("MP process error:", error);
-    return NextResponse.json({ error: "Error procesando pago" }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error("MP process error:", msg);
+    return NextResponse.json({ status: "error", status_detail: msg }, { status: 500 });
   }
 }

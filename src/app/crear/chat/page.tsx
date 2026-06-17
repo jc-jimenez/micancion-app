@@ -72,7 +72,8 @@ function ChatContenido() {
     recognition.onstart = () => setEscuchando(true);
     recognition.onend = () => setEscuchando(false);
 
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (e: any) => {
       const transcript = Array.from(e.results)
         .map((r) => r[0].transcript)
         .join("");

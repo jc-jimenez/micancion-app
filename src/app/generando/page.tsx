@@ -55,7 +55,14 @@ export default function GenerandoPage() {
     const styleBase = ESTILOS[estilo] ?? ESTILOS["IA decide"];
     const toneTag = TONOS[tono] ?? "";
     const stylePrompt = toneTag ? `${styleBase}, ${toneTag}` : styleBase;
-    setDebugInfo({ letra: letra.slice(0, 300), estilo, tono, style: stylePrompt });
+    const extras = pedido.extras ?? {};
+    const extraTags: string[] = [];
+    if (extras.coro_doble)      extraTags.push("double chorus, harmonies");
+    if (extras.bridge)          extraTags.push("emotional bridge section");
+    if (extras.intro_piano)     extraTags.push("solo piano intro");
+    if (extras.final_dramatico) extraTags.push("dramatic orchestral ending, crescendo");
+    const fullStyle = [stylePrompt, ...extraTags].filter(Boolean).join(", ");
+    setDebugInfo({ letra: letra.slice(0, 300), estilo, tono, style: fullStyle });
 
     // Animación de progreso — 2 min aprox
     const DURACION_ANIM = 120000;
@@ -72,7 +79,7 @@ export default function GenerandoPage() {
       const genRes = await fetch("/api/suno/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, estilo, tono: pedido.tono ?? "", titulo }),
+        body: JSON.stringify({ letra, estilo, tono: pedido.tono ?? "", titulo, extras: pedido.extras ?? {} }),
       });
 
       if (!genRes.ok) throw new Error("Error iniciando generación");

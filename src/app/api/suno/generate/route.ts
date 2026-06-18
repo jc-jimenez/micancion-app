@@ -25,16 +25,22 @@ const TONOS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { letra, estilo = "Default", tono = "", titulo = "Mi Canción" } = await req.json();
+    const { letra, estilo = "IA decide", tono = "", titulo = "Mi Canción", extras = {} } = await req.json();
 
     if (!letra) return NextResponse.json({ error: "Letra requerida" }, { status: 400 });
 
     const apiKey = process.env.SUNO_API_KEY;
     if (!apiKey) return NextResponse.json({ error: "API key no configurada" }, { status: 500 });
 
-    const styleBase = ESTILOS[estilo] ?? ESTILOS.Default;
+    const styleBase = ESTILOS[estilo] ?? ESTILOS["IA decide"];
     const toneTag = TONOS[tono] ?? "";
-    const style = toneTag ? `${styleBase}, ${toneTag}` : styleBase;
+    const extraTags: string[] = [];
+    if (extras.coro_doble)     extraTags.push("double chorus, harmonies");
+    if (extras.bridge)         extraTags.push("emotional bridge section");
+    if (extras.intro_piano)    extraTags.push("solo piano intro");
+    if (extras.final_dramatico) extraTags.push("dramatic orchestral ending, crescendo");
+    const allTags = [styleBase, toneTag, ...extraTags].filter(Boolean).join(", ");
+    const style = allTags;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://micancion-app.vercel.app";
 
     console.log(`Generando con Suno: estilo="${style}", letra=${letra.length} chars`);

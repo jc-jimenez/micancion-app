@@ -247,7 +247,7 @@ export default function PropuestaPage() {
           </div>
           <button
             onClick={() => {
-              localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilo} · ${config.tono} · Voz ${config.voz}`, estilo: config.estilo, tono: config.tono, voz: config.voz }));
+              localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilo} · ${config.tono} · Voz ${config.voz}`, estilo: config.estilo, tono: config.tono, voz: config.voz, extras }));
               router.push("/pago");
             }}
             disabled={generando}

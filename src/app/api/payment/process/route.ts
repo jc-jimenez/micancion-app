@@ -8,7 +8,7 @@ const client = new MercadoPagoConfig({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log("MP process body keys:", Object.keys(body));
+    console.log("MP process body:", JSON.stringify(body));
     const { email, ...formData } = body;
 
     const payment = new Payment(client);

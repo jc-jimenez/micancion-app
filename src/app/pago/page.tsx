@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -12,12 +12,8 @@ function PagoContenido() {
   const [email, setEmail] = useState("");
   const [emailOk, setEmailOk] = useState(false);
   const [cargandoMP, setCargandoMP] = useState(false);
-  const [mpListo, setMpListo] = useState(false);
   const [precioTotal, setPrecioTotal] = useState(39);
   const [configDesc, setConfigDesc] = useState("Canción IA personalizada");
-  const brickRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const brickControllerRef = useRef<any>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("micancion_pedido");
@@ -33,71 +29,18 @@ function PagoContenido() {
     setCargandoMP(true);
 
     try {
-      // 1. Crear preferencia en el backend
       const res = await fetch("/api/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ total: precioTotal, desc: configDesc, email }),
       });
-      const { id: preferenceId, sandbox_init_point } = await res.json();
-
-      if (!preferenceId) throw new Error("Sin preference ID");
-
-      // 2. Cargar el SDK de MP dinámicamente
-      const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
-
-      if (!publicKey) {
-        // Sin clave pública — redirigir directo al sandbox_init_point
-        if (sandbox_init_point) window.location.href = sandbox_init_point;
-        return;
+      const data = await res.json();
+      const url = data.sandbox_init_point ?? data.init_point;
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("Sin URL de pago");
       }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mp = new (window as any).MercadoPago(publicKey, { locale: "es-MX" });
-      const bricks = mp.bricks();
-
-      if (brickControllerRef.current) {
-        brickControllerRef.current.unmount();
-      }
-
-      brickControllerRef.current = await bricks.create("cardPayment", "mp-brick-container", {
-        initialization: { amount: precioTotal, preferenceId },
-        customization: {
-          visual: { style: { theme: "dark" } },
-          paymentMethods: { types: { included: ["credit_card", "debit_card"] } },
-        },
-        callbacks: {
-          onReady: () => { setCargandoMP(false); setMpListo(true); },
-          onError: () => setCargandoMP(false),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onSubmit: async ({ selectedPaymentMethod, formData }: any) => {
-            try {
-              const payload = {
-                ...formData,
-                transaction_amount: precioTotal,
-                payment_method_id: formData?.payment_method_id ?? selectedPaymentMethod?.payment_method_id ?? selectedPaymentMethod,
-                email,
-              };
-              console.log("onSubmit payload:", JSON.stringify(payload));
-              const res = await fetch("/api/payment/process", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              });
-              const data = await res.json();
-              console.log("Payment response:", data);
-              if (data.status === "approved" || data.status === "in_process" || data.status === "pending") {
-                window.location.href = "/generando";
-              } else {
-                window.location.href = `/pago?error=1&detail=${data.status_detail ?? data.status ?? "unknown"}`;
-              }
-            } catch (e) {
-              console.error("onSubmit error:", e);
-              window.location.href = "/pago?error=1";
-            }
-          },
-        },
-      });
     } catch (err) {
       console.error(err);
       setCargandoMP(false);
@@ -114,8 +57,6 @@ function PagoContenido() {
         #mp-brick-container iframe { border-radius: 16px !important; }
       `}</style>
 
-      {/* Script SDK de MP */}
-      <script src="https://sdk.mercadopago.com/js/v2" async />
 
       {/* Blobs */}
       <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(212,53,143,0.1) 0%,transparent 70%)", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }} />
@@ -159,9 +100,8 @@ function PagoContenido() {
           </div>
         </div>
 
-        {/* Paso 1: Email */}
-        {!mpListo && (
-          <div style={{ marginBottom: 24 }}>
+        {/* Email */}
+        <div style={{ marginBottom: 24 }}>
             <label style={{ display: "block", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Correo electrónico
             </label>
@@ -185,10 +125,6 @@ function PagoContenido() {
               </button>
             </div>
           </div>
-        )}
-
-        {/* Contenedor de Brick de MP */}
-        <div ref={brickRef} id="mp-brick-container" style={{ minHeight: mpListo ? "auto" : 0 }} />
 
         {/* Sellos */}
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>

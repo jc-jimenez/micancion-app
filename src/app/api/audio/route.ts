@@ -10,8 +10,10 @@ const VOCES: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  console.log("🎵 /api/audio POST iniciado");
   try {
     const { letra, voz = "Femenina" } = await req.json();
+    console.log("🎵 body recibido, voz:", voz, "letra length:", letra?.length);
 
     if (!letra) {
       return NextResponse.json({ error: "Letra requerida" }, { status: 400 });

@@ -4,10 +4,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type Extras = { coro_doble: boolean; bridge: boolean; intro_piano: boolean; final_dramatico: boolean };
-type ConfigMusical = { estilo: string; tono: string; voz: string; tempo: string };
+type ConfigMusical = { estilos: string[]; instrumentos: string[]; iaInstrumentos: boolean; tono: string; voz: string; tempo: string };
 
-const ESTILOS = ["Mariachi", "Corrido", "Banda", "Norteño", "Balada", "Pop", "Cumbia", "Urbano", "Góspel", "IA decide"];
-const TONOS = ["Emotivo", "Alegre", "Con humor", "Poético", "Intenso"];
+const ESTILOS = ["Mariachi", "Corrido", "Banda", "Norteño", "Balada", "Pop", "Cumbia", "Urbano", "Góspel", "Ranchera", "Tropical", "Reggaeton"];
+const INSTRUMENTOS = [
+  "Guitarra acústica", "Guitarra eléctrica", "Bajo eléctrico", "Bajo sexto",
+  "Guitarrón", "Vihuela", "Trompeta", "Trombón", "Tuba", "Clarinete",
+  "Saxofón", "Acordeón", "Piano", "Teclado", "Batería", "Violín", "Coro",
+];
+const TONOS = ["Emotivo", "Alegre", "Con humor", "Poético", "Intenso", "Romántico"];
 const VOCES = ["Femenina", "Masculina", "Dueto"];
 const TEMPOS = ["Lento", "Moderado", "Rápido"];
 
@@ -58,7 +63,7 @@ export default function PropuestaPage() {
   const [generando, setGenerando] = useState(true);
   const [error, setError] = useState(false);
   const [letraVisible, setLetraVisible] = useState(true);
-  const [config, setConfig] = useState<ConfigMusical>({ estilo: "IA decide", tono: "Emotivo", voz: "Femenina", tempo: "Moderado" });
+  const [config, setConfig] = useState<ConfigMusical>({ estilos: [], instrumentos: [], iaInstrumentos: true, tono: "Emotivo", voz: "Femenina", tempo: "Moderado" });
   const [extras, setExtras] = useState<Extras>({ coro_doble: false, bridge: false, intro_piano: false, final_dramatico: false });
 
   useEffect(() => { generarLetra(); }, []);
@@ -72,7 +77,7 @@ export default function PropuestaPage() {
       const configActual = configOverride ?? config;
       const mensajesConConfig = [
         ...historial,
-        { role: "user", content: `Configuración musical:\n- Estilo: ${configActual.estilo}\n- Tono: ${configActual.tono}\n- Voz: ${configActual.voz}\n- Tempo: ${configActual.tempo}\n\nAhora genera la letra completa.` },
+        { role: "user", content: `Configuración musical:\n- Estilos: ${configActual.estilos.length ? configActual.estilos.join(", ") : "IA decide"}\n- Instrumentos: ${configActual.iaInstrumentos ? "IA decide" : configActual.instrumentos.join(", ")}\n- Tono: ${configActual.tono}\n- Voz: ${configActual.voz}\n- Tempo: ${configActual.tempo}\n\nAhora genera la letra completa.` },
       ];
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: mensajesConConfig, mode: "generate" }) });
       const data = await res.json();
@@ -86,6 +91,18 @@ export default function PropuestaPage() {
 
   function toggleExtra(key: keyof Extras) { setExtras((p) => ({ ...p, [key]: !p[key] })); }
   function cambiarConfig(campo: keyof ConfigMusical, valor: string) { setConfig((p) => ({ ...p, [campo]: valor })); }
+  function toggleEstilo(e: string) {
+    setConfig(p => ({
+      ...p,
+      estilos: p.estilos.includes(e) ? p.estilos.filter(x => x !== e) : [...p.estilos, e],
+    }));
+  }
+  function toggleInstrumento(i: string) {
+    setConfig(p => ({
+      ...p,
+      instrumentos: p.instrumentos.includes(i) ? p.instrumentos.filter(x => x !== i) : [...p.instrumentos, i],
+    }));
+  }
 
   const precioBase = 39;
   const precioExtras = Object.entries(extras).reduce((acc, [k, v]) => {
@@ -185,16 +202,47 @@ export default function PropuestaPage() {
           {/* ── Configuración musical ── */}
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
             <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 4 }}>🎸 Configuración musical</h3>
-            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 20 }}>Si cambias algo, regenera la letra para que se adapte.</p>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 20 }}>Mezcla estilos, elige instrumentos o deja que la IA decida.</p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+              {/* Estilos multi-select */}
               <div>
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>Estilo musical</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {ESTILOS.map(e => <Chip key={e} label={e} activo={config.estilo === e} onClick={() => cambiarConfig("estilo", e)} />)}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>🎵 Estilo musical <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 400, textTransform: "none" }}>(puedes mezclar varios)</span></p>
+                  {config.estilos.length > 0 && (
+                    <button onClick={() => setConfig(p => ({ ...p, estilos: [] }))} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 11, cursor: "pointer" }}>Limpiar</button>
+                  )}
                 </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {ESTILOS.map(e => <Chip key={e} label={e} activo={config.estilos.includes(e)} onClick={() => toggleEstilo(e)} />)}
+                </div>
+                {config.estilos.length === 0 && (
+                  <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, marginTop: 8 }}>Sin selección = la IA elige el estilo</p>
+                )}
               </div>
 
+              {/* Instrumentos */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>🎺 Instrumentos</p>
+                  <button
+                    onClick={() => setConfig(p => ({ ...p, iaInstrumentos: !p.iaInstrumentos, instrumentos: [] }))}
+                    style={{ padding: "4px 12px", borderRadius: 100, border: `1px solid ${config.iaInstrumentos ? "#19C3C9" : "rgba(255,255,255,0.15)"}`, background: config.iaInstrumentos ? "rgba(25,195,201,0.15)" : "none", color: config.iaInstrumentos ? "#19C3C9" : "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    {config.iaInstrumentos ? "✦ IA elige" : "Manual"}
+                  </button>
+                </div>
+                {config.iaInstrumentos ? (
+                  <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>La IA seleccionará los instrumentos según el estilo</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {INSTRUMENTOS.map(i => <Chip key={i} label={i} activo={config.instrumentos.includes(i)} onClick={() => toggleInstrumento(i)} color="#FF6B4A" />)}
+                  </div>
+                )}
+              </div>
+
+              {/* Tono / Voz / Tempo */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 20 }}>
                 {[
                   { label: "💫 Tono", campo: "tono" as keyof ConfigMusical, opts: TONOS },
@@ -204,7 +252,7 @@ export default function PropuestaPage() {
                   <div key={campo}>
                     <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {opts.map(o => <Chip key={o} label={o} activo={config[campo] === o} onClick={() => cambiarConfig(campo, o)} color="#19C3C9" />)}
+                      {opts.map(o => <Chip key={o} label={o} activo={config[campo] === o} onClick={() => cambiarConfig(campo, o as string)} color="#19C3C9" />)}
                     </div>
                   </div>
                 ))}
@@ -212,7 +260,7 @@ export default function PropuestaPage() {
 
               {!generando && letra && (
                 <button onClick={() => generarLetra(config)} style={{ padding: "10px 0", borderRadius: 100, border: "1.5px dashed rgba(212,53,143,0.4)", background: "rgba(212,53,143,0.06)", cursor: "pointer", fontWeight: 700, fontSize: 13, color: "#D4358F", transition: "all 0.15s" }}>
-                  🔄 Regenerar con esta configuración
+                  🔄 Regenerar letra con esta configuración
                 </button>
               )}
             </div>
@@ -247,7 +295,7 @@ export default function PropuestaPage() {
           </div>
           <button
             onClick={() => {
-              localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilo} · ${config.tono} · Voz ${config.voz}`, estilo: config.estilo, tono: config.tono, voz: config.voz, extras }));
+              localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilos.join("+")||"IA"} · ${config.tono} · Voz ${config.voz}`, estilos: config.estilos, instrumentos: config.iaInstrumentos ? [] : config.instrumentos, iaInstrumentos: config.iaInstrumentos, tono: config.tono, voz: config.voz, tempo: config.tempo, extras }));
               router.push("/pago");
             }}
             disabled={generando}

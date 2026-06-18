@@ -30,7 +30,8 @@ export default function GenerandoPage() {
     const letra = localStorage.getItem("micancion_letra") ?? "";
     const pedidoRaw = localStorage.getItem("micancion_pedido");
     const pedido = pedidoRaw ? JSON.parse(pedidoRaw) : {};
-    const estilo = pedido.estilo ?? "IA decide";
+    const estilos: string[] = pedido.estilos ?? [];
+    const instrumentos: string[] = pedido.instrumentos ?? [];
     const tono = pedido.tono ?? "";
     const titulo = pedido.titulo ?? "Mi Canción";
 
@@ -52,17 +53,17 @@ export default function GenerandoPage() {
       "Romántico": "romantic, tender, loving", "Intenso": "intense, powerful, dramatic",
       "Relajado": "relaxed, calm, mellow",
     };
-    const styleBase = ESTILOS[estilo] ?? ESTILOS["IA decide"];
+    const estiloTags = estilos.length > 0 ? estilos.map((e: string) => ESTILOS[e] ?? e).join(", ") : "pop";
+    const instrTags = instrumentos.length > 0 ? instrumentos.join(", ") : "";
     const toneTag = TONOS[tono] ?? "";
-    const stylePrompt = toneTag ? `${styleBase}, ${toneTag}` : styleBase;
     const extras = pedido.extras ?? {};
     const extraTags: string[] = [];
-    if (extras.coro_doble)      extraTags.push("double chorus, harmonies");
-    if (extras.bridge)          extraTags.push("emotional bridge section");
-    if (extras.intro_piano)     extraTags.push("solo piano intro");
-    if (extras.final_dramatico) extraTags.push("dramatic orchestral ending, crescendo");
-    const fullStyle = [stylePrompt, ...extraTags].filter(Boolean).join(", ");
-    setDebugInfo({ letra: letra.slice(0, 300), estilo, tono, style: fullStyle });
+    if (extras.coro_doble)      extraTags.push("double chorus");
+    if (extras.bridge)          extraTags.push("emotional bridge");
+    if (extras.intro_piano)     extraTags.push("piano intro");
+    if (extras.final_dramatico) extraTags.push("dramatic ending");
+    const fullStyle = [estiloTags, instrTags, toneTag, ...extraTags].filter(Boolean).join(", ");
+    setDebugInfo({ letra: letra.slice(0, 300), estilo: estilos.join(" + ") || "IA decide", tono, style: fullStyle });
 
     // Animación de progreso — 2 min aprox
     const DURACION_ANIM = 120000;
@@ -79,7 +80,7 @@ export default function GenerandoPage() {
       const genRes = await fetch("/api/suno/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, estilo, tono: pedido.tono ?? "", titulo, extras: pedido.extras ?? {} }),
+        body: JSON.stringify({ letra, estilos: pedido.estilos ?? [], instrumentos: pedido.instrumentos ?? [], tono: pedido.tono ?? "", titulo, extras: pedido.extras ?? {} }),
       });
 
       if (!genRes.ok) throw new Error("Error iniciando generación");

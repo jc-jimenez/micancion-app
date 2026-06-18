@@ -90,6 +90,11 @@ function ChatContenido() {
   const preguntasMax = esGuiado ? 7 : 2;
   const progreso = fase === "listo" ? 100 : Math.min(Math.round((turno / preguntasMax) * 100), 95);
 
+  // Limpiar datos de canción anterior al iniciar nueva sesión
+  useEffect(() => {
+    ["micancion_info","micancion_letra","micancion_pedido","micancion_audio_url","micancion_cover_url","micancion_duracion"].forEach(k => localStorage.removeItem(k));
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes, fase]);

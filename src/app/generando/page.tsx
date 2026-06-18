@@ -37,21 +37,27 @@ export default function GenerandoPage() {
 
     // Mostrar debug info
     const ESTILOS: Record<string, string> = {
-      "Mariachi": "mariachi, trumpets, guitarron, vihuela, guitarras, mexican mariachi",
-      "Corrido": "corrido mexicano, acoustic guitar, accordion, storytelling, norteño",
-      "Banda": "banda sinaloense, tubas, clarinets, brass, mexican banda",
-      "Norteño": "norteño, accordion, bajo sexto, mexican folk",
-      "Balada": "romantic ballad, piano, strings, soft vocals",
-      "Pop": "pop, modern production, catchy melody, upbeat",
-      "Cumbia": "cumbia, accordion, tropical, festive rhythm",
-      "Urbano": "reggaeton, urban latin, trap, modern beats",
-      "Góspel": "gospel, choir, uplifting, spiritual, piano",
-      "IA decide": "pop, emotional, heartfelt vocals",
+      "Mariachi":  "mariachi, guitarrón, vihuela, trompetas, estilo mexicano",
+      "Corrido":   "corrido mexicano, guitarra acústica, acordeón, narración norteña",
+      "Banda":     "banda sinaloense, tubas, clarinetes, metales, música de viento",
+      "Norteño":   "norteño, acordeón, bajo sexto, música regional mexicana",
+      "Ranchera":  "ranchera, guitarra acústica, emotivo, folk mexicano",
+      "Balada":    "balada romántica, piano, cuerdas, voz suave",
+      "Pop":       "pop moderno, producción contemporánea, melodía pegajosa",
+      "Cumbia":    "cumbia, acordeón, ritmo tropical, festivo",
+      "Urbano":    "reggaeton, urbano latino, trap, beats modernos",
+      "Góspel":    "góspel, coro, espiritual, piano, inspirador",
+      "Tropical":  "salsa, tropical, metales, percusión latina",
+      "Reggaeton": "reggaeton, perreo, beats urbanos, 808",
     };
     const TONOS: Record<string, string> = {
-      "Emotivo": "emotional, heartfelt", "Alegre": "happy, joyful, upbeat",
-      "Romántico": "romantic, tender, loving", "Intenso": "intense, powerful, dramatic",
-      "Relajado": "relaxed, calm, mellow",
+      "Emotivo":   "emotivo, conmovedor, desde el corazón",
+      "Alegre":    "alegre, festivo, lleno de energía",
+      "Romántico": "romántico, tierno, apasionado",
+      "Intenso":   "intenso, poderoso, dramático, épico",
+      "Relajado":  "relajado, tranquilo, suave",
+      "Con humor": "divertido, con humor, ligero, bromista",
+      "Poético":   "poético, lírico, metafórico",
     };
     const estiloTags = estilos.length > 0 ? estilos.map((e: string) => ESTILOS[e] ?? e).join(", ") : "pop";
     const instrTags = instrumentos.length > 0 ? instrumentos.join(", ") : "";

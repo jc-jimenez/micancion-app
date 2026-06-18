@@ -16,6 +16,8 @@ export default function GenerandoPage() {
   const [pasoActual, setPasoActual] = useState(0);
   const [progreso, setProgreso] = useState(0);
   const [estado, setEstado] = useState<"generando" | "listo" | "error">("generando");
+  const [debugInfo, setDebugInfo] = useState<{letra: string; estilo: string; tono: string; style: string} | null>(null);
+  const [debugVisible, setDebugVisible] = useState(false);
   const iniciado = useRef(false);
 
   useEffect(() => {
@@ -28,8 +30,32 @@ export default function GenerandoPage() {
     const letra = localStorage.getItem("micancion_letra") ?? "";
     const pedidoRaw = localStorage.getItem("micancion_pedido");
     const pedido = pedidoRaw ? JSON.parse(pedidoRaw) : {};
-    const estilo = pedido.estilo ?? "Pop romántico";
+    const estilo = pedido.estilo ?? "IA decide";
+    const tono = pedido.tono ?? "";
     const titulo = pedido.titulo ?? "Mi Canción";
+
+    // Mostrar debug info
+    const ESTILOS: Record<string, string> = {
+      "Mariachi": "mariachi, trumpets, guitarron, vihuela, guitarras, mexican mariachi",
+      "Corrido": "corrido mexicano, acoustic guitar, accordion, storytelling, norteño",
+      "Banda": "banda sinaloense, tubas, clarinets, brass, mexican banda",
+      "Norteño": "norteño, accordion, bajo sexto, mexican folk",
+      "Balada": "romantic ballad, piano, strings, soft vocals",
+      "Pop": "pop, modern production, catchy melody, upbeat",
+      "Cumbia": "cumbia, accordion, tropical, festive rhythm",
+      "Urbano": "reggaeton, urban latin, trap, modern beats",
+      "Góspel": "gospel, choir, uplifting, spiritual, piano",
+      "IA decide": "pop, emotional, heartfelt vocals",
+    };
+    const TONOS: Record<string, string> = {
+      "Emotivo": "emotional, heartfelt", "Alegre": "happy, joyful, upbeat",
+      "Romántico": "romantic, tender, loving", "Intenso": "intense, powerful, dramatic",
+      "Relajado": "relaxed, calm, mellow",
+    };
+    const styleBase = ESTILOS[estilo] ?? ESTILOS["IA decide"];
+    const toneTag = TONOS[tono] ?? "";
+    const stylePrompt = toneTag ? `${styleBase}, ${toneTag}` : styleBase;
+    setDebugInfo({ letra: letra.slice(0, 300), estilo, tono, style: stylePrompt });
 
     // Animación de progreso — 2 min aprox
     const DURACION_ANIM = 120000;
@@ -176,6 +202,32 @@ export default function GenerandoPage() {
           })}
         </div>
       </div>
+
+      {/* Panel de debug */}
+      {debugInfo && (
+        <div style={{ position: "fixed", bottom: 16, right: 16, zIndex: 999, maxWidth: 360 }}>
+          <button
+            onClick={() => setDebugVisible(!debugVisible)}
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 14px", color: "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer", width: "100%" }}
+          >
+            {debugVisible ? "▼ Ocultar debug" : "▶ Ver prompt enviado a Suno"}
+          </button>
+          {debugVisible && (
+            <div style={{ marginTop: 8, background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: 14, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>
+              <div style={{ marginBottom: 10 }}>
+                <span style={{ color: "#D4358F", fontWeight: 700 }}>Estilo:</span> {debugInfo.estilo}<br/>
+                <span style={{ color: "#D4358F", fontWeight: 700 }}>Tono:</span> {debugInfo.tono}<br/>
+                <span style={{ color: "#19C3C9", fontWeight: 700 }}>Style prompt → Suno:</span><br/>
+                <code style={{ color: "#FF6B4A", fontSize: 11 }}>{debugInfo.style}</code>
+              </div>
+              <div>
+                <span style={{ color: "#D4358F", fontWeight: 700 }}>Letra (primeros 300 chars):</span><br/>
+                <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "rgba(255,255,255,0.6)", fontSize: 11, marginTop: 4 }}>{debugInfo.letra}</pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

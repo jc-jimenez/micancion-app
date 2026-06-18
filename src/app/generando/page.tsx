@@ -46,7 +46,7 @@ export default function GenerandoPage() {
       const genRes = await fetch("/api/suno/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, estilo, titulo }),
+        body: JSON.stringify({ letra, estilo, tono: pedido.tono ?? "", titulo }),
       });
 
       if (!genRes.ok) throw new Error("Error iniciando generación");

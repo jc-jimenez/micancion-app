@@ -126,6 +126,16 @@ function PagoContenido() {
             </div>
           </div>
 
+        {/* Modo prueba */}
+        <div style={{ textAlign: "center", marginTop: 16, marginBottom: 8 }}>
+          <button
+            onClick={() => { window.location.href = "/generando"; }}
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.2)", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}
+          >
+            [Modo prueba: saltar pago]
+          </button>
+        </div>
+
         {/* Sellos */}
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
           {["🔒 SSL seguro", "🏦 Mercado Pago", "✅ Garantía 100%"].map(s => (

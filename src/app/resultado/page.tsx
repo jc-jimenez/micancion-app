@@ -39,9 +39,12 @@ export default function ResultadoPage() {
     const savedLetra = localStorage.getItem("micancion_letra");
     if (savedLetra) setLetra(savedLetra);
 
-    // Si había audio pre-generado en sessionStorage como blob URL
-    const savedAudio = sessionStorage.getItem("micancion_audio_url");
-    if (savedAudio) cargarAudio(savedAudio);
+    const duracionGuardada = localStorage.getItem("micancion_duracion");
+    if (duracionGuardada) setDuracion(Math.floor(Number(duracionGuardada)));
+
+    // Audio URL de Suno guardada en localStorage
+    const audioUrl = localStorage.getItem("micancion_audio_url");
+    if (audioUrl) cargarAudio(audioUrl);
 
     return () => {
       audioRef.current?.pause();
@@ -117,26 +120,13 @@ export default function ResultadoPage() {
   }
 
   async function descargar() {
-    if (!letra) return;
-    const pedidoRaw = localStorage.getItem("micancion_pedido");
-    const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
-    try {
-      const res = await fetch("/api/audio", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, voz }),
-      });
-      if (!res.ok) throw new Error("Error");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "mi-cancion.mp3";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      alert("Error descargando el audio. Intenta de nuevo.");
-    }
+    const audioUrl = localStorage.getItem("micancion_audio_url");
+    if (!audioUrl) { alert("El audio aún no está listo."); return; }
+    const a = document.createElement("a");
+    a.href = audioUrl;
+    a.download = "mi-cancion.mp3";
+    a.target = "_blank";
+    a.click();
   }
 
   function compartir() {

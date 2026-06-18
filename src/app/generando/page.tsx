@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 
 const PASOS = [
   { emoji: "🧠", texto: "Analizando tu historia..." },
-  { emoji: "✍️", texto: "Escribiendo la letra..." },
+  { emoji: "✍️", texto: "Preparando la letra..." },
   { emoji: "🎼", texto: "Componiendo la melodía..." },
-  { emoji: "🎤", texto: "Grabando la voz..." },
+  { emoji: "🎤", texto: "Grabando la voz cantada..." },
   { emoji: "🎚️", texto: "Mezclando y masterizando..." },
   { emoji: "✨", texto: "¡Últimos toques mágicos!" },
 ];
@@ -16,59 +16,81 @@ export default function GenerandoPage() {
   const [pasoActual, setPasoActual] = useState(0);
   const [progreso, setProgreso] = useState(0);
   const [estado, setEstado] = useState<"generando" | "listo" | "error">("generando");
-  const audioGeneradoRef = useRef(false);
+  const iniciado = useRef(false);
 
   useEffect(() => {
-    if (audioGeneradoRef.current) return;
-    audioGeneradoRef.current = true;
-    generarAudio();
+    if (iniciado.current) return;
+    iniciado.current = true;
+    generarCancion();
   }, []);
 
-  async function generarAudio() {
+  async function generarCancion() {
     const letra = localStorage.getItem("micancion_letra") ?? "";
     const pedidoRaw = localStorage.getItem("micancion_pedido");
-    const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
+    const pedido = pedidoRaw ? JSON.parse(pedidoRaw) : {};
+    const estilo = pedido.estilo ?? "Pop romántico";
+    const titulo = pedido.titulo ?? "Mi Canción";
 
-    // Animación de progreso independiente
+    // Animación de progreso — 2 min aprox
+    const DURACION_ANIM = 120000;
     const inicio = Date.now();
-    const DURACION_MIN = 8000; // mínimo 8s de animación
-
     const animInterval = setInterval(() => {
       const elapsed = Date.now() - inicio;
-      const pct = Math.min((elapsed / DURACION_MIN) * 90, 90); // max 90% hasta que termine
+      const pct = Math.min((elapsed / DURACION_ANIM) * 85, 85);
       setProgreso(pct);
-      setPasoActual(Math.min(Math.floor(elapsed / (DURACION_MIN / PASOS.length)), PASOS.length - 1));
-    }, 80);
+      setPasoActual(Math.min(Math.floor(elapsed / (DURACION_ANIM / PASOS.length)), PASOS.length - 1));
+    }, 500);
 
     try {
-      const res = await fetch("/api/audio", {
+      // 1. Iniciar generación en Suno
+      const genRes = await fetch("/api/suno/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, voz }),
+        body: JSON.stringify({ letra, estilo, titulo }),
       });
 
-      clearInterval(animInterval);
+      if (!genRes.ok) throw new Error("Error iniciando generación");
+      const { taskId } = await genRes.json();
+      if (!taskId) throw new Error("Sin taskId");
 
-      if (!res.ok) throw new Error("Error generando audio");
+      console.log("Suno taskId:", taskId);
 
-      // Convertir a base64 y guardar en sessionStorage
-      const buffer = await res.arrayBuffer();
-      const base64 = btoa(
-        new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-      );
-      sessionStorage.setItem("micancion_audio", `data:audio/mpeg;base64,${base64}`);
+      // 2. Polling cada 8s hasta SUCCESS (max 5 min)
+      const MAX_INTENTOS = 37;
+      let intentos = 0;
 
-      setProgreso(100);
-      setPasoActual(PASOS.length - 1);
-      setEstado("listo");
-      setTimeout(() => router.push("/resultado"), 800);
+      while (intentos < MAX_INTENTOS) {
+        await new Promise(r => setTimeout(r, 8000));
+        intentos++;
+
+        const statusRes = await fetch(`/api/suno/status?taskId=${taskId}`);
+        const statusData = await statusRes.json();
+        console.log(`Suno poll ${intentos}:`, statusData.status);
+
+        if (statusData.status === "SUCCESS") {
+          clearInterval(animInterval);
+          localStorage.setItem("micancion_audio_url", statusData.audioUrl ?? "");
+          if (statusData.imageUrl) localStorage.setItem("micancion_cover_url", statusData.imageUrl);
+          if (statusData.duration) localStorage.setItem("micancion_duracion", String(statusData.duration));
+          setProgreso(100);
+          setPasoActual(PASOS.length - 1);
+          setEstado("listo");
+          setTimeout(() => router.push("/resultado"), 800);
+          return;
+        }
+
+        if (statusData.status === "ERROR") {
+          throw new Error(statusData.error ?? "Error en Suno");
+        }
+      }
+
+      throw new Error("Timeout esperando la canción");
     } catch (err) {
-      console.error(err);
+      console.error("Error generando canción:", err);
       clearInterval(animInterval);
       setEstado("error");
-      // Redirigir igual — el resultado mostrará la letra aunque no haya audio
       setProgreso(100);
-      setTimeout(() => router.push("/resultado"), 1500);
+      setTimeout(() => router.push("/resultado"), 2000);
     }
   }
 
@@ -84,22 +106,18 @@ export default function GenerandoPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Nunito:wght@400;600;700&display=swap');
         @keyframes eq-bounce { 0%,100%{transform:scaleY(0.4)} 50%{transform:scaleY(1)} }
         @keyframes pulse-glow { 0%,100%{box-shadow:0 0 30px rgba(212,53,143,0.4)} 50%{box-shadow:0 0 60px rgba(212,53,143,0.7)} }
-        @keyframes pop { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
       `}</style>
 
-      {/* Blobs */}
       <div style={{ position: "absolute", top: "20%", left: "20%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(212,53,143,0.15) 0%,transparent 70%)", filter: "blur(50px)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: "15%", right: "15%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(25,195,201,0.12) 0%,transparent 70%)", filter: "blur(50px)", pointerEvents: "none" }} />
 
       <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 420 }}>
 
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 56 }}>
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎵</div>
           <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff" }}>MiCanción</span>
         </div>
 
-        {/* Ecualizador */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 56, marginBottom: 40 }}>
           {[1,2,3,4,5,6,7,8,9].map((n) => (
             <div key={n} style={{
@@ -115,17 +133,20 @@ export default function GenerandoPage() {
         <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(26px,5vw,36px)", color: "#fff", textAlign: "center", marginBottom: 10, lineHeight: 1.2 }}>
           {estado === "listo" ? "¡Tu canción está lista!" : "Creando tu canción"}
         </h1>
-        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 15, textAlign: "center", marginBottom: 48 }}>
-          {estado === "listo" ? "Redirigiendo..." : estado === "error" ? "Terminando..." : "La magia está en proceso ✨"}
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 15, textAlign: "center", marginBottom: 8 }}>
+          {estado === "listo" ? "Redirigiendo..." : estado === "error" ? "Hubo un problema..." : "Suno AI está componiendo tu canción ✨"}
         </p>
+        {estado === "generando" && (
+          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12, textAlign: "center", marginBottom: 48 }}>
+            Esto puede tardar 2-3 minutos. No cierres esta ventana.
+          </p>
+        )}
 
-        {/* Barra de progreso */}
         <div style={{ width: "100%", height: 6, borderRadius: 100, background: "rgba(255,255,255,0.08)", marginBottom: 10, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progreso}%`, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", borderRadius: 100, transition: "width 0.3s ease", boxShadow: "0 0 12px rgba(212,53,143,0.6)" }} />
+          <div style={{ height: "100%", width: `${progreso}%`, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", borderRadius: 100, transition: "width 0.5s ease", boxShadow: "0 0 12px rgba(212,53,143,0.6)" }} />
         </div>
         <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, fontWeight: 700, marginBottom: 44 }}>{Math.round(progreso)}%</div>
 
-        {/* Pasos */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%" }}>
           {PASOS.map((p, i) => {
             const completado = i < pasoActual;
@@ -154,10 +175,6 @@ export default function GenerandoPage() {
             );
           })}
         </div>
-
-        <p style={{ marginTop: 48, color: "rgba(255,255,255,0.2)", fontSize: 12, textAlign: "center" }}>
-          No cierres esta ventana mientras creamos tu canción
-        </p>
       </div>
     </div>
   );

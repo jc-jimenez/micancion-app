@@ -30,8 +30,6 @@ export default function ResultadoPage() {
   const [compartido, setCompartido] = useState(false);
   const [letra, setLetra] = useState("");
   const [tieneAudio, setTieneAudio] = useState(false);
-  const [generandoAudio, setGenerandoAudio] = useState(false);
-  const [errorAudio, setErrorAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -96,29 +94,6 @@ export default function ResultadoPage() {
     setTieneAudio(true);
   }
 
-  async function generarAudioAhora() {
-    if (!letra) return;
-    setGenerandoAudio(true);
-    setErrorAudio(false);
-    try {
-      const pedidoRaw = localStorage.getItem("micancion_pedido");
-      const voz = pedidoRaw ? (JSON.parse(pedidoRaw).voz ?? "Femenina") : "Femenina";
-      const res = await fetch("/api/audio", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ letra, voz }),
-      });
-      if (!res.ok) throw new Error("Error");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      cargarAudio(url);
-    } catch {
-      setErrorAudio(true);
-    } finally {
-      setGenerandoAudio(false);
-    }
-  }
-
   async function descargar() {
     const audioUrl = localStorage.getItem("micancion_audio_url");
     if (!audioUrl) { alert("El audio aún no está listo."); return; }
@@ -166,8 +141,12 @@ export default function ResultadoPage() {
         {/* Header éxito */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 40 }}>
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 20, boxShadow: "0 8px 40px rgba(212,53,143,0.5)", animation: "pop 0.4s ease both" }}>🎵</div>
-          <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(26px,5vw,36px)", color: "#fff", marginBottom: 10, lineHeight: 1.2 }}>¡Tu canción está lista!</h1>
-          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, maxWidth: 380 }}>Creada especialmente para ti. Escúchala, descárgala y compártela.</p>
+          <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "clamp(26px,5vw,36px)", color: "#fff", marginBottom: 10, lineHeight: 1.2 }}>
+            {tieneAudio ? "¡Tu canción está lista!" : "Procesando tu canción..."}
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, maxWidth: 380 }}>
+            {tieneAudio ? "Creada especialmente para ti. Escúchala, descárgala y compártela." : "Hubo un problema con la generación. Puedes reintentar abajo."}
+          </p>
         </div>
 
         {/* Reproductor */}
@@ -182,23 +161,18 @@ export default function ResultadoPage() {
             </div>
           </div>
 
-          {/* Generar audio si no existe */}
+          {/* Error: Suno no generó audio */}
           {!tieneAudio && (
-            <div style={{ marginBottom: 20, padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ marginBottom: 20, padding: "16px", borderRadius: 12, background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
-                <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>
-                  {generandoAudio ? "🎤 Generando audio con IA..." : errorAudio ? "⚠️ Error al generar audio" : "🎵 Genera el audio de tu canción"}
-                </div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 }}>
-                  {generandoAudio ? "Puede tardar ~30 segundos" : "Convierte tu letra en voz real con IA"}
-                </div>
+                <div style={{ color: "#ff6b6b", fontWeight: 700, fontSize: 13 }}>⚠️ Error generando la canción</div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 }}>Suno AI no pudo completar la generación.</div>
               </div>
               <button
-                onClick={generarAudioAhora}
-                disabled={generandoAudio || !letra}
-                style={{ height: 38, padding: "0 18px", borderRadius: 100, background: generandoAudio ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontWeight: 700, fontSize: 13, border: "none", cursor: generandoAudio ? "not-allowed" : "pointer", whiteSpace: "nowrap", boxShadow: generandoAudio ? "none" : "0 4px 16px rgba(212,53,143,0.4)", flexShrink: 0 }}
+                onClick={() => window.location.href = "/generando"}
+                style={{ height: 38, padding: "0 18px", borderRadius: 100, background: "rgba(255,107,107,0.2)", color: "#ff6b6b", fontWeight: 700, fontSize: 13, border: "1px solid rgba(255,107,107,0.4)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
               >
-                {generandoAudio ? "..." : errorAudio ? "Reintentar" : "Generar ✦"}
+                Reintentar
               </button>
             </div>
           )}

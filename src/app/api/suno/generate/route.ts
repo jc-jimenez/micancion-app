@@ -3,23 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 30;
 
 const ESTILOS: Record<string, string> = {
-  "Pop romántico": "romantic pop, catchy melody, emotional vocals, modern production",
-  "Mariachi": "mariachi, trumpets, guitarron, vihuela, passionate mexican style",
-  "Regional mexicano": "regional mexican, banda sinaloense, brass instruments, emotional",
-  "Rock": "rock, electric guitar, drums, powerful vocals, energetic",
-  "Cumbia": "cumbia, tropical, accordion, festive, upbeat rhythm",
-  "Balada": "romantic ballad, piano, strings, soft emotional vocals",
-  "Jazz": "jazz, saxophone, piano, double bass, smooth sophisticated vocals",
-  "Ranchera": "ranchera, acoustic guitar, emotional mexican folk",
-  "Default": "pop, upbeat, emotional, heartfelt vocals",
+  "Mariachi": "mariachi, trumpets, guitarron, vihuela, guitarras, mexican mariachi",
+  "Corrido": "corrido mexicano, acoustic guitar, accordion, storytelling, norteño",
+  "Banda": "banda sinaloense, tubas, clarinets, brass, mexican banda",
+  "Norteño": "norteño, accordion, bajo sexto, mexican folk",
+  "Balada": "romantic ballad, piano, strings, soft vocals",
+  "Pop": "pop, modern production, catchy melody, upbeat",
+  "Cumbia": "cumbia, accordion, tropical, festive rhythm",
+  "Urbano": "reggaeton, urban latin, trap, modern beats",
+  "Góspel": "gospel, choir, uplifting, spiritual, piano",
+  "IA decide": "pop, emotional, heartfelt vocals",
 };
 
 const TONOS: Record<string, string> = {
-  "Emotivo": "emotional, heartfelt, touching",
-  "Alegre": "happy, upbeat, joyful, celebratory",
-  "Romántico": "romantic, loving, tender, passionate",
+  "Emotivo": "emotional, heartfelt",
+  "Alegre": "happy, joyful, upbeat",
+  "Romántico": "romantic, tender, loving",
   "Intenso": "intense, powerful, dramatic",
-  "Relajado": "relaxed, calm, peaceful, mellow",
+  "Relajado": "relaxed, calm, mellow",
 };
 
 export async function POST(req: NextRequest) {

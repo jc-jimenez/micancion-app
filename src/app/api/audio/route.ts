@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const maxDuration = 60; // segundos — requiere Vercel hobby o superior
+
 // Voces disponibles por tipo
 const VOCES: Record<string, string> = {
   Femenina: "EXAVITQu4vr4xnSDxMaL", // Sarah — multilingual, cálida
@@ -14,6 +16,10 @@ export async function POST(req: NextRequest) {
     if (!letra) {
       return NextResponse.json({ error: "Letra requerida" }, { status: 400 });
     }
+
+    // ElevenLabs free tier: max ~2500 chars
+    const textoFinal = letra.length > 2500 ? letra.slice(0, 2500) : letra;
+    console.log(`Generando audio: ${textoFinal.length} chars, voz: ${voz}`);
 
     const voiceId = VOCES[voz] ?? VOCES.Femenina;
     const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -32,7 +38,7 @@ export async function POST(req: NextRequest) {
           Accept: "audio/mpeg",
         },
         body: JSON.stringify({
-          text: letra,
+          text: textoFinal,
           model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.4,
@@ -46,9 +52,10 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const err = await response.text();
-      console.error("ElevenLabs error:", err);
-      return NextResponse.json({ error: "Error generando audio" }, { status: 500 });
+      console.error("ElevenLabs error:", response.status, err);
+      return NextResponse.json({ error: "Error generando audio", detail: err }, { status: 500 });
     }
+    console.log("ElevenLabs OK, devolviendo audio");
 
     // Devolver el audio como stream
     const audioBuffer = await response.arrayBuffer();

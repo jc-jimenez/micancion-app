@@ -70,12 +70,19 @@ function PagoContenido() {
           onReady: () => { setCargandoMP(false); setMpListo(true); },
           onError: () => setCargandoMP(false),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onSubmit: async ({ formData }: any) => {
+          onSubmit: async ({ selectedPaymentMethod, formData }: any) => {
             try {
+              const payload = {
+                ...formData,
+                transaction_amount: precioTotal,
+                payment_method_id: formData?.payment_method_id ?? selectedPaymentMethod?.payment_method_id ?? selectedPaymentMethod,
+                email,
+              };
+              console.log("onSubmit payload:", JSON.stringify(payload));
               const res = await fetch("/api/payment/process", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, transaction_amount: precioTotal, email }),
+                body: JSON.stringify(payload),
               });
               const data = await res.json();
               console.log("Payment response:", data);

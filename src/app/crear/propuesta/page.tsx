@@ -60,13 +60,12 @@ function ExtraToggle({ emoji, titulo, desc, activo, precio, onClick }: {
 export default function PropuestaPage() {
   const router = useRouter();
   const [letra, setLetra] = useState("");
-  const [generando, setGenerando] = useState(true);
+  const [generando, setGenerando] = useState(false);
   const [error, setError] = useState(false);
   const [letraVisible, setLetraVisible] = useState(true);
+  const [letraGenerada, setLetraGenerada] = useState(false);
   const [config, setConfig] = useState<ConfigMusical>({ estilos: [], instrumentos: [], iaInstrumentos: true, tono: "Emotivo", voz: "Femenina", tempo: "Moderado" });
   const [extras, setExtras] = useState<Extras>({ coro_doble: false, bridge: false, intro_piano: false, final_dramatico: false });
-
-  useEffect(() => { generarLetra(); }, []);
 
   async function generarLetra(configOverride?: ConfigMusical) {
     setGenerando(true); setError(false);
@@ -83,6 +82,7 @@ export default function PropuestaPage() {
       const data = await res.json();
       if (data.text) {
         setLetra(data.text);
+        setLetraGenerada(true);
         localStorage.setItem("micancion_letra", data.text);
       } else { setError(true); }
     } catch { setError(true); }
@@ -154,51 +154,6 @@ export default function PropuestaPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── Letra ── */}
-          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: letraVisible ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>🎵</span>
-                <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff" }}>Letra generada</span>
-              </div>
-              {!generando && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => generarLetra()} style={{ padding: "6px 14px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.12)", background: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
-                    🔄 Regenerar
-                  </button>
-                  <button onClick={() => setLetraVisible(!letraVisible)} style={{ padding: "6px 14px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.12)", background: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700 }}>
-                    {letraVisible ? "Ocultar" : "Ver"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {letraVisible && (
-              <div style={{ padding: "20px" }}>
-                {generando ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "40px 0" }}>
-                    <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 32px rgba(212,53,143,0.4)", animation: "pop 0.6s ease infinite alternate" }}>🎵</div>
-                    <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, textAlign: "center" }}>Componiendo tu canción con todo lo que me contaste...</p>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {[0,1,2].map(n => <div key={n} style={{ width: 8, height: 8, borderRadius: "50%", background: "#D4358F", animation: `eq-bounce 0.8s ease ${n*0.15}s infinite` }} />)}
-                    </div>
-                  </div>
-                ) : error ? (
-                  <div style={{ textAlign: "center", padding: "32px 0" }}>
-                    <p style={{ color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>Hubo un error generando la letra.</p>
-                    <button onClick={() => generarLetra()} style={{ padding: "10px 24px", borderRadius: 100, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
-                      Reintentar
-                    </button>
-                  </div>
-                ) : (
-                  <pre style={{ fontFamily: "'Nunito', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 2, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
-                    {letra}
-                  </pre>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* ── Configuración musical ── */}
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
             <h3 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 4 }}>🎸 Configuración musical</h3>
@@ -258,13 +213,59 @@ export default function PropuestaPage() {
                 ))}
               </div>
 
-              {!generando && letra && (
-                <button onClick={() => generarLetra(config)} style={{ padding: "10px 0", borderRadius: 100, border: "1.5px dashed rgba(212,53,143,0.4)", background: "rgba(212,53,143,0.06)", cursor: "pointer", fontWeight: 700, fontSize: 13, color: "#D4358F", transition: "all 0.15s" }}>
-                  🔄 Regenerar letra con esta configuración
-                </button>
-              )}
+              {/* Botón principal: generar letra con la config seleccionada */}
+              <button
+                onClick={() => generarLetra(config)}
+                disabled={generando}
+                style={{ padding: "14px 0", borderRadius: 100, border: "none", background: generando ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", cursor: generando ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 15, color: generando ? "rgba(255,255,255,0.3)" : "#fff", boxShadow: generando ? "none" : "0 8px 32px rgba(212,53,143,0.4)", transition: "all 0.2s" }}
+              >
+                {generando ? "✍️ Generando letra..." : letraGenerada ? "🔄 Regenerar letra con esta configuración" : "✍️ Generar mi letra"}
+              </button>
             </div>
           </div>
+
+          {/* ── Letra generada ── DESPUÉS de config */}
+          {(generando || letraGenerada || error) && (
+            <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: letraVisible ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🎵</span>
+                  <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: 15, color: "#fff" }}>
+                    {generando ? "Generando letra..." : "Letra generada"}
+                  </span>
+                </div>
+                {!generando && letraGenerada && (
+                  <button onClick={() => setLetraVisible(!letraVisible)} style={{ padding: "6px 14px", borderRadius: 100, border: "1px solid rgba(255,255,255,0.12)", background: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700 }}>
+                    {letraVisible ? "Ocultar" : "Ver"}
+                  </button>
+                )}
+              </div>
+              {letraVisible && (
+                <div style={{ padding: "20px" }}>
+                  {generando ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "40px 0" }}>
+                      <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#D4358F,#FF6B4A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, boxShadow: "0 8px 32px rgba(212,53,143,0.4)", animation: "pop 0.6s ease infinite alternate" }}>🎵</div>
+                      <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, textAlign: "center" }}>Componiendo tu canción con los estilos seleccionados...</p>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[0,1,2].map(n => <div key={n} style={{ width: 8, height: 8, borderRadius: "50%", background: "#D4358F", animation: `eq-bounce 0.8s ease ${n*0.15}s infinite` }} />)}
+                      </div>
+                    </div>
+                  ) : error ? (
+                    <div style={{ textAlign: "center", padding: "32px 0" }}>
+                      <p style={{ color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>Hubo un error generando la letra.</p>
+                      <button onClick={() => generarLetra(config)} style={{ padding: "10px 24px", borderRadius: 100, background: "linear-gradient(135deg,#D4358F,#FF6B4A)", color: "#fff", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
+                        Reintentar
+                      </button>
+                    </div>
+                  ) : (
+                    <pre style={{ fontFamily: "'Nunito', sans-serif", fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 2, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
+                      {letra}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Extras ── */}
           <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
@@ -298,10 +299,10 @@ export default function PropuestaPage() {
               localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilos.join("+")||"IA"} · ${config.tono} · Voz ${config.voz}`, estilos: config.estilos, instrumentos: config.iaInstrumentos ? [] : config.instrumentos, iaInstrumentos: config.iaInstrumentos, tono: config.tono, voz: config.voz, tempo: config.tempo, extras }));
               router.push("/pago");
             }}
-            disabled={generando}
-            style={{ height: 52, padding: "0 36px", borderRadius: 100, background: generando ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: generando ? "rgba(255,255,255,0.3)" : "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 16, border: "none", cursor: generando ? "not-allowed" : "pointer", boxShadow: generando ? "none" : "0 8px 32px rgba(212,53,143,0.4)", whiteSpace: "nowrap", transition: "all 0.2s" }}
+            disabled={generando || !letraGenerada}
+            style={{ height: 52, padding: "0 36px", borderRadius: 100, background: (generando || !letraGenerada) ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: (generando || !letraGenerada) ? "rgba(255,255,255,0.3)" : "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 16, border: "none", cursor: (generando || !letraGenerada) ? "not-allowed" : "pointer", boxShadow: (generando || !letraGenerada) ? "none" : "0 8px 32px rgba(212,53,143,0.4)", whiteSpace: "nowrap", transition: "all 0.2s" }}
           >
-            {generando ? "Generando..." : "Pagar y crear 🎵"}
+            {generando ? "Generando..." : !letraGenerada ? "Genera la letra primero" : "Pagar y crear 🎵"}
           </button>
         </div>
       </div>

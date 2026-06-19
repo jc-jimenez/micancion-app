@@ -297,7 +297,7 @@ export default function PropuestaPage() {
           <button
             onClick={() => {
               localStorage.setItem("micancion_pedido", JSON.stringify({ total: precioTotal, desc: `${config.estilos.join("+")||"IA"} · ${config.tono} · Voz ${config.voz}`, estilos: config.estilos, instrumentos: config.iaInstrumentos ? [] : config.instrumentos, iaInstrumentos: config.iaInstrumentos, tono: config.tono, voz: config.voz, tempo: config.tempo, extras }));
-              router.push("/pago");
+              router.push("/generando");
             }}
             disabled={generando || !letraGenerada}
             style={{ height: 52, padding: "0 36px", borderRadius: 100, background: (generando || !letraGenerada) ? "rgba(255,255,255,0.08)" : "linear-gradient(135deg,#D4358F,#FF6B4A)", color: (generando || !letraGenerada) ? "rgba(255,255,255,0.3)" : "#fff", fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: 16, border: "none", cursor: (generando || !letraGenerada) ? "not-allowed" : "pointer", boxShadow: (generando || !letraGenerada) ? "none" : "0 8px 32px rgba(212,53,143,0.4)", whiteSpace: "nowrap", transition: "all 0.2s" }}

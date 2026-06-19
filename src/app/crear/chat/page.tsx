@@ -31,18 +31,37 @@ type Fase = "chat" | "confirmacion" | "listo";
 function ChatContenido() {
   const searchParams = useSearchParams();
   const metodo = searchParams.get("metodo") ?? "hablar";
+  const motivoParam = searchParams.get("motivo") ?? "";
   const router = useRouter();
   const esGuiado = metodo !== "escribir";
 
+  // Si viene motivo de la página anterior, saltamos la primera pregunta
+  const primerMensaje = motivoParam
+    ? `¡Perfecto! 🎵 Vamos a crear una canción de ${motivoParam}.\n\n¿Para quién es la canción? (ejemplo: mi mamá, mi pareja, mi hijo, mi mejor amigo...)`
+    : esGuiado ? PRIMERA_PREGUNTA_GUIADO : PRIMERA_PREGUNTA_LIBRE;
+
+  const primerPlaceholder = motivoParam
+    ? "Ej: Para mi mamá, para mi esposo, para mi hijo..."
+    : esGuiado ? "Escribe el número o tu respuesta..." : "Ej: Para mi mamá que cumple 60 años...";
+
+  // Si viene motivo, el historial ya tiene el primer turno resuelto
+  const historialInicial: ClaudeMsg[] = motivoParam
+    ? [
+        { role: "user", content: motivoParam },
+        { role: "assistant", content: primerMensaje },
+      ]
+    : [];
+
   const [mensajes, setMensajes] = useState<Mensaje[]>([{
     rol: "ia",
-    texto: esGuiado ? PRIMERA_PREGUNTA_GUIADO : PRIMERA_PREGUNTA_LIBRE,
-    placeholder: esGuiado ? "Escribe el número o tu respuesta..." : "Ej: Para mi mamá que cumple 60 años...",
+    texto: primerMensaje,
+    placeholder: primerPlaceholder,
   }]);
-  const [historial, setHistorial] = useState<ClaudeMsg[]>([]);
+  const [historial, setHistorial] = useState<ClaudeMsg[]>(historialInicial);
+  const [turnoInicial] = useState(() => motivoParam ? 1 : 0);
   const [input, setInput] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [turno, setTurno] = useState(0);
+  const [turno, setTurno] = useState(turnoInicial);
   const [fase, setFase] = useState<Fase>("chat");
   const [escuchando, setEscuchando] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -97,11 +97,22 @@ export default function ResultadoPage() {
   async function descargar() {
     const audioUrl = localStorage.getItem("micancion_audio_url");
     if (!audioUrl) { alert("El audio aún no está listo."); return; }
-    const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = "mi-cancion.mp3";
-    a.target = "_blank";
-    a.click();
+    try {
+      const res = await fetch(audioUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mi-cancion.mp3";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      // Fallback si CORS bloquea el fetch
+      const a = document.createElement("a");
+      a.href = audioUrl;
+      a.download = "mi-cancion.mp3";
+      a.click();
+    }
   }
 
   function compartir() {
